@@ -6,66 +6,47 @@ import type {
   GraphRequest,
   GraphResult,
   SortingAlgorithmId,
+  SortingRequest,
   SortingResult,
 } from "./types";
 
 import { runGraphAlgorithm } from "./algorithms/graphAlgorithms";
+import { runSortingAlgorithm } from "./algorithms/sortingAlgorithms";
 
-import { runSelectionSort } from "./algorithms/selectionSort";
-import { runInsertionSort } from "./algorithms/insertionSort";
-import { runQuickSort } from "./algorithms/quickSort";
-
-export function checkApi(): boolean {
-  // LogicLab runs algorithms locally in the browser.
-  return true;
-}
-
-export function runAlgorithm(
-  algorithm: GraphAlgorithmId,
-  request: Omit<GraphRequest, "algorithm">,
-): GraphResult {
-  return runGraphAlgorithm(algorithm, request);
-}
-
-export function runSortingAlgorithm(
-  algorithm: SortingAlgorithmId,
-  input: number[],
-  ascending = true,
-): SortingResult {
-  switch (algorithm) {
-    case "selectionSort":
-      return runSelectionSort(input, ascending);
-
-    case "insertionSort":
-      return runInsertionSort(input, ascending);
-
-    case "quickSort":
-      return runQuickSort(input, ascending);
-
-    default: {
-      const exhaustive: never = algorithm;
-      throw new Error(`Unsupported sorting algorithm: ${exhaustive}`);
-    }
-  }
+export function isGraphAlgorithm(
+  id: AlgorithmId,
+): id is GraphAlgorithmId {
+  return (
+    id === "dijkstra" ||
+    id === "bfs" ||
+    id === "dfs" ||
+    id === "prim"
+  );
 }
 
 export function isSortingAlgorithm(
-  algorithm: AlgorithmId,
-): algorithm is SortingAlgorithmId {
+  id: AlgorithmId,
+): id is SortingAlgorithmId {
   return (
-    algorithm === "selectionSort" ||
-    algorithm === "insertionSort" ||
-    algorithm === "quickSort"
+    id === "selectionSort" ||
+    id === "insertionSort" ||
+    id === "quickSort"
   );
 }
 
-export function isGraphAlgorithm(
-  algorithm: AlgorithmId,
-): algorithm is GraphAlgorithmId {
-  return (
-    algorithm === "dijkstra" ||
-    algorithm === "bfs" ||
-    algorithm === "dfs" ||
-    algorithm === "prim"
-  );
+export function runAlgorithm(
+  request: GraphRequest | SortingRequest,
+): GraphResult | SortingResult {
+  if (isGraphAlgorithm(request.algorithm)) {
+    return runGraphAlgorithm(request as GraphRequest);
+  }
+
+  return runSortingAlgorithm(request as SortingRequest);
 }
+
+export type {
+  GraphRequest,
+  GraphResult,
+  SortingRequest,
+  SortingResult,
+};

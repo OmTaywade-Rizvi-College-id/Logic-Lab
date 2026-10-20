@@ -134,7 +134,18 @@ export default function ExploreAlgorithms() {
         directed: algorithmId === "prim" ? false : directed,
       };
 
-      const graphResult = runAlgorithm(algorithmId, request);
+      const graphResult = runAlgorithm({
+        ...request,
+        algorithm: algorithmId,
+      });
+
+      if ("visitedOrder" in graphResult) {
+        setResult(graphResult);
+      } else {
+        setError("Expected a graph result, but received a sorting result.");
+        setResult(null);
+        return;
+      }
 
       setResult(graphResult);
 
@@ -334,7 +345,7 @@ export default function ExploreAlgorithms() {
                     eyebrow="GRAPH"
                     title="Graph"
                     icon={<Network size={17} className="text-[#789247]" />}
-                    
+
                     action={
                       <span className="rounded-lg border border-[#dfe5d8] bg-white/80 px-3 py-1.5 text-xs text-[#718070]">
                         {algorithmId === "prim"
@@ -392,7 +403,7 @@ export default function ExploreAlgorithms() {
                   destination={destination}
                   search={search}
                   directed={algorithmId === "prim" ? false : directed}
-                  algorithm={algorithm}
+                  algorithm={getAlgorithm(algorithmId)}
                   onSource={(value) => {
                     setSource(value);
                     clearExecution();
@@ -448,7 +459,7 @@ export default function ExploreAlgorithms() {
                     eyebrow="RESULT"
                     title="Execution summary"
                     icon={<Sparkles size={17} className="text-[#789247]" />}
-                    
+
                   >
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Metric
@@ -511,7 +522,7 @@ export default function ExploreAlgorithms() {
           )}
         </main>
 
-        
+
       </div>
     </div>
   );

@@ -1,127 +1,74 @@
-import type { SortingResult, SortingStep } from "../types";
-import { validateSortingInput } from "./validation";
+// src/algorithms/insertionSort.ts
 
-export const insertionSortSource = {
-  typescript: `function insertionSort(input: number[], ascending = true) {
-  const array = [...input];
+import type { SortingRequest, SortingResult, SortingStep } from "../types";
 
-  for (let i = 1; i < array.length; i++) {
-    const key = array[i];
-    let j = i - 1;
-
-    while (j >= 0 && (ascending ? array[j] > key : array[j] < key)) {
-      array[j + 1] = array[j];
-      j--;
-    }
-
-    array[j + 1] = key;
-  }
-
-  return array;
-}`,
-  cpp: `vector<int> insertionSort(vector<int> a, bool ascending = true) {
-  for (int i = 1; i < (int)a.size(); i++) {
-    int key = a[i];
-    int j = i - 1;
-    while (j >= 0 && (ascending ? a[j] > key : a[j] < key)) {
-      a[j + 1] = a[j];
-      j--;
-    }
-    a[j + 1] = key;
-  }
-  return a;
-}`,
-  python: `def insertion_sort(values, ascending=True):
-    a = values[:]
-    for i in range(1, len(a)):
-        key = a[i]
-        j = i - 1
-        while j >= 0 and (a[j] > key if ascending else a[j] < key):
-            a[j + 1] = a[j]
-            j -= 1
-        a[j + 1] = key
-    return a`,
-};
-
-export function runInsertionSort(
-  input: number[],
-  ascending = true,
-): SortingResult {
-  const errors = validateSortingInput("insertionSort", input);
-
-  if (errors.length) {
-    throw new Error(errors.join(" "));
-  }
-
-  const array = [...input];
+export function insertionSort(request: SortingRequest): SortingResult {
+  const originalArray = [...request.values];
+  const array = [...request.values];
+  const ascending = request.ascending ?? true;
   const steps: SortingStep[] = [];
+  const sortedIndices: number[] = [];
 
   let comparisons = 0;
   let swaps = 0;
   let writes = 0;
 
-  function record(
+  const shouldShift = (left: number, right: number) =>
+    ascending ? left > right : left < right;
+
+  const record = (
     action: SortingStep["action"],
     explanation: string,
-    sourceLine: number,
+    activeIndices: number[] = [],
     extra: Partial<SortingStep> = {},
-  ) {
+  ) => {
     steps.push({
-      stepNumber: steps.length,
+      stepNumber: steps.length + 1,
       action,
       explanation,
       array: [...array],
-      activeIndices: [],
-      sortedIndices: [],
-      sourceLine,
+      activeIndices,
+      sortedIndices: [...sortedIndices],
       comparisons,
       swaps,
       writes,
       ...extra,
     });
-  }
+  };
 
-  record("start", "Start Insertion Sort.", 1);
+  record("start", "Begin insertion sort.", []);
 
   for (let i = 1; i < array.length; i++) {
     const key = array[i];
     let j = i - 1;
 
-    record("start", `Select ${key} as the key.`, 4, {
-      indexI: i,
-      keyIndex: i,
-      activeIndices: [i],
-    });
+    record(
+      "insert",
+      `Take ${key} as the value to insert into the sorted section.`,
+      [i],
+      { indexI: i, keyIndex: i, sourceLine: 1 },
+    );
 
     while (j >= 0) {
       comparisons++;
 
-      record("compare", `Compare ${array[j]} with key ${key}.`, 7, {
-        indexI: i,
-        indexJ: j,
-        keyIndex: i,
-        activeIndices: [j, i],
-      });
+      record(
+        "compare",
+        `Compare ${array[j]} with ${key}.`,
+        [j, j + 1],
+        { indexI: i, indexJ: j, keyIndex: i, sourceLine: 2 },
+      );
 
-      const shouldShift = ascending
-        ? array[j] > key
-        : array[j] < key;
-
-      if (!shouldShift) break;
+      if (!shouldShift(array[j], key)) break;
 
       array[j + 1] = array[j];
       writes++;
 
       record(
         "shift",
-        `Shift ${array[j]} from index ${j} to ${j + 1}.`,
-        8,
-        {
-          indexI: i,
-          indexJ: j,
-          keyIndex: i,
-          activeIndices: [j, j + 1],
-        },
+        `Shift ${array[j]} one position to the right.`,
+        [j, j + 1],
+        { indexI: i, indexJ: j, keyIndex: i, sourceLine: 3 },
       );
 
       j--;
@@ -130,20 +77,24 @@ export function runInsertionSort(
     array[j + 1] = key;
     writes++;
 
-    record("insert", `Insert key ${key} at index ${j + 1}.`, 12, {
-      indexI: i,
-      keyIndex: j + 1,
-      activeIndices: [j + 1],
-    });
+    record(
+      "insert",
+      `Insert ${key} at index ${j + 1}.`,
+      [j + 1],
+      { indexI: i, keyIndex: j + 1, sourceLine: 4 },
+    );
+
+    sortedIndices.length = 0;
+    for (let k = 0; k <= i; k++) sortedIndices.push(k);
   }
 
-  record("complete", "Insertion Sort finished.", 15, {
-    sortedIndices: array.map((_, index) => index),
-  });
+  if (array.length === 1) sortedIndices.push(0);
+
+  record("complete", "Insertion sort completed.", []);
 
   return {
     algorithm: "insertionSort",
-    originalArray: [...input],
+    originalArray,
     sortedArray: array,
     steps,
     comparisons,

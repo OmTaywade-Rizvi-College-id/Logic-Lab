@@ -1,85 +1,69 @@
 // src/algorithms/prim.ts
 
 import type { Edge, GraphRequest, GraphResult, GraphStep } from "../types";
-import { validateGraphInput } from "./validation";
 
-export const primSource = {
-  typescript: `function prim(graph, start) {
-  const visited = new Set([start]);
-  const selectedEdges = [];
+export function prim(request: GraphRequest): GraphResult {
+  const { nodes, edges, startNode } = request;
+  const steps: GraphStep[] = [];
+  const visited = new Set<string>();
+  const visitedOrder: string[] = [];
+  const selectedEdges: Edge[] = [];
+  const distances: Record<string, number> = {};
+
+  nodes.forEach((node) => { distances[node] = Infinity; });
+
   let totalWeight = 0;
 
-  while (visited.size < graph.nodes.length) {
-    let bestEdge;
+  const makeStep = (
+    action: GraphStep["action"],
+    message: string,
+    explanation: string,
+    state: Partial<GraphStep> = {},
+  ): GraphStep => ({
+    stepNumber: steps.length + 1,
+    action,
+    message,
+    explanation,
+    visitedNodes: [...visitedOrder],
+    visited: [...visitedOrder],
+    queue: [],
+    stack: [],
+    distances: { ...distances },
+    distanceSnapshot: { ...distances },
+    selectedEdges: [...selectedEdges],
+    totalWeight,
+    ...state,
+  });
 
-    for (const node of visited) {
-      for (const edge of graph[node]) {
-        if (visited.has(edge.to)) continue;
-        if (!bestEdge || edge.weight < bestEdge.weight) {
-          bestEdge = edge;
-        }
-      }
-    }
+  const fail = (message: string): GraphResult => ({
+    algorithm: "prim",
+    steps: [makeStep("error", message, message)],
+    visitedOrder: [],
+    selectedEdges: [],
+    distances: { ...distances },
+    path: [],
+    totalWeight: 0,
+    error: message,
+  });
 
-    if (!bestEdge) break;
-
-    visited.add(bestEdge.to);
-    selectedEdges.push(bestEdge);
-    totalWeight += bestEdge.weight;
+  if (!nodes.includes(startNode)) {
+    return fail(`Start node "${startNode}" does not exist.`);
   }
 
-  return { selectedEdges, totalWeight };
-}`,
-  cpp: `// Prim's algorithm for an undirected weighted graph.
-long long prim(vector<vector<pair<int,int>>>& graph, int start) {
-  vector<bool> visited(graph.size(), false);
-  priority_queue<tuple<int,int,int>,
-    vector<tuple<int,int,int>>, greater<>> pq;
-  pq.push({0, start, -1});
-  long long totalWeight = 0;
+  if (edges.some((edge) => !Number.isFinite(edge.weight))) {
+    return fail("All edge weights must be finite numbers.");
+  }
 
-  while (!pq.empty()) {
-    auto [weight, node, parent] = pq.top();
-    pq.pop();
-    if (visited[node]) continue;
-    visited[node] = true;
-    totalWeight += parent == -1 ? 0 : weight;
-
-    for (auto [next, w] : graph[node]) {
-      if (!visited[next]) pq.push({w, next, node});
+  for (const edge of edges) {
+    if (!nodes.includes(edge.from) || !nodes.includes(edge.to)) {
+      return fail(`Edge ${edge.from} → ${edge.to} contains an unknown node.`);
     }
   }
-  return totalWeight;
-}`,
-  python: `import heapq
 
-def prim(graph, start):
-    visited = {start}
-    heap = [(weight, start, neighbor)
-            for neighbor, weight in graph[start]]
-    heapq.heapify(heap)
-    selected_edges = []
-    total_weight = 0
-
-    while heap and len(visited) < len(graph):
-        weight, parent, node = heapq.heappop(heap)
-        if node in visited:
-            continue
-        visited.add(node)
-        selected_edges.append((parent, node, weight))
-        total_weight += weight
-        for neighbor, next_weight in graph[node]:
-            if neighbor not in visited:
-                heapq.heappush(heap, (next_weight, node, neighbor))
-
-    return selected_edges, total_weight`,
-};
-
-function buildAdjacency(graph: GraphRequest): Map<string, Edge[]> {
   const adjacency = new Map<string, Edge[]>();
-  graph.nodes.forEach((node) => adjacency.set(node, []));
+  nodes.forEach((node) => adjacency.set(node, []));
 
-  for (const edge of graph.edges) {
+  for (const edge of edges) {
     adjacency.get(edge.from)!.push(edge);
     adjacency.get(edge.to)!.push({
       from: edge.to,
@@ -88,121 +72,87 @@ function buildAdjacency(graph: GraphRequest): Map<string, Edge[]> {
     });
   }
 
-  for (const edges of adjacency.values()) {
-    edges.sort(
-      (a, b) =>
-        a.weight - b.weight ||
-        a.to.localeCompare(b.to) ||
-        a.from.localeCompare(b.from),
-    );
-  }
+  steps.push(makeStep(
+    "start",
+    `Start Prim from ${startNode}.`,
+    "Begin with the selected start node. At each step, choose the lowest-weight edge connecting the tree to an unvisited node.",
+    { currentNode: startNode, sourceLine: 1 },
+  ));
 
-  return adjacency;
-}
+  const roots = [startNode, ...nodes.filter((node) => node !== startNode)];
 
-export function runPrim(graph: GraphRequest): GraphResult {
-  const errors = validateGraphInput("prim", graph);
-  if (errors.length) throw new Error(errors.join(" "));
+  for (const root of roots) {
+    if (visited.has(root)) continue;
 
-  const adjacency = buildAdjacency(graph);
-  const visited = new Set<string>([graph.startNode]);
-  const visitedNodes: string[] = [graph.startNode];
-  const selectedEdges: Edge[] = [];
-  const steps: GraphStep[] = [];
+    visited.add(root);
+    visitedOrder.push(root);
 
-  const distances: Record<string, number> = Object.fromEntries(
-    graph.nodes.map((node) => [node, Infinity]),
-  );
-  distances[graph.startNode] = 0;
+    steps.push(makeStep(
+      "visit",
+      `Add node ${root} to the tree.`,
+      visitedOrder.length === 1
+        ? "The first node starts the minimum spanning tree."
+        : `Node ${root} begins another component because the graph is disconnected.`,
+      { currentNode: root, sourceLine: 2 },
+    ));
 
-  let totalWeight = 0;
+    while (true) {
+      let best: Edge | undefined;
 
-  const record = (
-    action: GraphStep["action"],
-    message: string,
-    extra: Partial<GraphStep> = {},
-  ) => {
-    steps.push({
-      stepNumber: steps.length,
-      action,
-      message,
-      explanation: message,
-      visitedNodes: [...visitedNodes],
-      queue: [],
-      stack: [],
-      distances: { ...distances },
-      selectedEdges: selectedEdges.map((edge) => ({ ...edge })),
-      totalWeight,
-      sourceLine: 1,
-      ...extra,
-    });
-  };
+      for (const from of visited) {
+        for (const edge of adjacency.get(from) ?? []) {
+          if (visited.has(edge.to)) continue;
 
-  record("start", `Start Prim at ${graph.startNode}.`);
+          steps.push(makeStep(
+            "compare",
+            `Consider edge ${edge.from} — ${edge.to} (weight ${edge.weight}).`,
+            "Only edges crossing from a visited node to an unvisited node can extend the tree.",
+            { currentNode: from, edgeFrom: edge.from, edgeTo: edge.to,
+              activeEdge: edge, sourceLine: 3 },
+          ));
 
-  while (visited.size < graph.nodes.length) {
-    let bestEdge: Edge | undefined;
-
-    for (const node of visited) {
-      for (const edge of adjacency.get(node) ?? []) {
-        if (visited.has(edge.to)) continue;
-
-        if (
-          !bestEdge ||
-          edge.weight < bestEdge.weight ||
-          (edge.weight === bestEdge.weight &&
-            edge.to.localeCompare(bestEdge.to) < 0)
-        ) {
-          bestEdge = edge;
+          if (!best || edge.weight < best.weight) best = edge;
         }
       }
+
+      if (!best) break;
+
+      selectedEdges.push(best);
+      totalWeight += best.weight;
+      visited.add(best.to);
+      visitedOrder.push(best.to);
+      distances[best.to] = best.weight;
+
+      steps.push(makeStep(
+        "select-edge",
+        `Select ${best.from} — ${best.to} (weight ${best.weight}).`,
+        `This is the minimum-weight edge connecting the current tree to an unvisited node. Total weight is now ${totalWeight}.`,
+        { currentNode: best.to, edgeFrom: best.from, edgeTo: best.to,
+          activeEdge: best, sourceLine: 4 },
+      ));
+
+      steps.push(makeStep(
+        "visit",
+        `Add node ${best.to} to the tree.`,
+        `Node ${best.to} is now part of the current spanning tree.`,
+        { currentNode: best.to, sourceLine: 5 },
+      ));
     }
-
-    if (!bestEdge) {
-      const message =
-        "The graph is disconnected. A spanning tree cannot include every node.";
-
-      record("error", message);
-
-      return {
-        algorithm: "prim",
-        steps,
-        visitedOrder: visitedNodes,
-        selectedEdges,
-        distances,
-        path: [],
-        totalWeight,
-        error: message,
-      };
-    }
-
-    visited.add(bestEdge.to);
-    visitedNodes.push(bestEdge.to);
-    selectedEdges.push(bestEdge);
-    totalWeight += bestEdge.weight;
-    distances[bestEdge.to] = bestEdge.weight;
-
-    record(
-      "select-edge",
-      `Select ${bestEdge.from} → ${bestEdge.to}, weight ${bestEdge.weight}.`,
-      {
-        currentNode: bestEdge.to,
-        edgeFrom: bestEdge.from,
-        edgeTo: bestEdge.to,
-        activeEdge: bestEdge,
-        sourceLine: 15,
-      },
-    );
   }
 
-  record("complete", `Minimum spanning tree weight: ${totalWeight}.`);
+  steps.push(makeStep(
+    "complete",
+    "Prim completed.",
+    `Selected ${selectedEdges.length} edge(s) with total weight ${totalWeight}.`,
+    { currentNode: visitedOrder[visitedOrder.length - 1], sourceLine: 6 },
+  ));
 
   return {
     algorithm: "prim",
     steps,
-    visitedOrder: visitedNodes,
+    visitedOrder,
     selectedEdges,
-    distances,
+    distances: { ...distances },
     path: [],
     totalWeight,
   };

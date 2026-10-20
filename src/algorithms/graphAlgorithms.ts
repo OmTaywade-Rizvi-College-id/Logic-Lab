@@ -6,43 +6,55 @@ import type {
   GraphResult,
 } from "../types";
 
-import { validateGraphInput } from "./validation";
-import { runDijkstra } from "./dijkstra";
-import { runBfs } from "./bfs";
-import { runDfs } from "./dfs";
-import { runPrim } from "./prim";
+import { bfs } from "./bfs";
+import { dfs } from "./dfs";
+import { dijkstra } from "./dijkstra";
+import { prim } from "./prim";
+import { validateGraphRequest } from "./validation";
 
 export function runGraphAlgorithm(
-  algorithm: GraphAlgorithmId,
-  request: Omit<GraphRequest, "algorithm">,
+  request: GraphRequest,
 ): GraphResult {
-  const fullRequest: GraphRequest = {
-    ...request,
-    algorithm,
-  };
+  const validation = validateGraphRequest(request);
 
-  const errors = validateGraphInput(algorithm, fullRequest);
+  if (!validation.valid) {
+    const message = validation.errors.join("\n");
 
-  if (errors.length > 0) {
-    throw new Error(errors.join(" "));
+    return {
+      algorithm: request.algorithm,
+      steps: [],
+      visitedOrder: [],
+      selectedEdges: [],
+      distances: {},
+      path: [],
+      totalWeight: 0,
+      error: message,
+    };
   }
 
-  switch (algorithm) {
-    case "dijkstra":
-      return runDijkstra(fullRequest);
-
+  switch (request.algorithm as GraphAlgorithmId) {
     case "bfs":
-      return runBfs(fullRequest);
+      return bfs(request);
 
     case "dfs":
-      return runDfs(fullRequest);
+      return dfs(request);
+
+    case "dijkstra":
+      return dijkstra(request);
 
     case "prim":
-      return runPrim(fullRequest);
+      return prim(request);
 
-    default: {
-      const exhaustive: never = algorithm;
-      throw new Error(`Unsupported graph algorithm: ${exhaustive}`);
-    }
+    default:
+      return {
+        algorithm: request.algorithm,
+        steps: [],
+        visitedOrder: [],
+        selectedEdges: [],
+        distances: {},
+        path: [],
+        totalWeight: 0,
+        error: `Unsupported graph algorithm: ${request.algorithm}`,
+      };
   }
 }

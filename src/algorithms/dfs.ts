@@ -1,68 +1,69 @@
 // src/algorithms/dfs.ts
 
 import type { Edge, GraphRequest, GraphResult, GraphStep } from "../types";
-import { validateGraphInput } from "./validation";
 
-export const dfsSource = {
-  typescript: `function dfs(graph, start, destination) {
-  const stack = [start];
-  const visited = new Set([start]);
-  const previous = new Map();
+export function dfs(request: GraphRequest): GraphResult {
+  const { nodes, edges, startNode, endNode, directed } = request;
+  const steps: GraphStep[] = [];
+  const visited = new Set<string>();
+  const visitedOrder: string[] = [];
+  const stack: string[] = [];
+  const distances: Record<string, number> = {};
+  const parent: Record<string, string | undefined> = {};
+  const selectedEdges: Edge[] = [];
 
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (current === destination) break;
+  nodes.forEach((node) => { distances[node] = Infinity; });
 
-    for (const edge of [...graph[current]].reverse()) {
-      if (visited.has(edge.to)) continue;
-      visited.add(edge.to);
-      previous.set(edge.to, current);
-      stack.push(edge.to);
-    }
+  const makeStep = (
+    action: GraphStep["action"],
+    message: string,
+    explanation: string,
+    state: Partial<GraphStep> = {},
+  ): GraphStep => ({
+    stepNumber: steps.length + 1,
+    action,
+    message,
+    explanation,
+    visitedNodes: [...visitedOrder],
+    visited: [...visitedOrder],
+    queue: [],
+    stack: [...stack],
+    distances: { ...distances },
+    selectedEdges: [...selectedEdges],
+    totalWeight: selectedEdges.reduce((sum, edge) => sum + edge.weight, 0),
+    ...state,
+  });
+
+  const fail = (message: string): GraphResult => ({
+    algorithm: "dfs",
+    steps: [makeStep("error", message, message)],
+    visitedOrder: [],
+    selectedEdges: [],
+    distances: { ...distances },
+    path: [],
+    totalWeight: 0,
+    error: message,
+  });
+
+  if (!nodes.includes(startNode)) {
+    return fail(`Start node "${startNode}" does not exist.`);
   }
 
-  return { visited, previous };
-}`,
-  cpp: `void dfs(vector<vector<int>>& graph, int start) {
-  stack<int> s;
-  vector<bool> visited(graph.size(), false);
-  s.push(start);
-
-  while (!s.empty()) {
-    int node = s.top();
-    s.pop();
-    if (visited[node]) continue;
-    visited[node] = true;
-
-    for (int next : graph[node]) {
-      if (!visited[next]) s.push(next);
-    }
+  if (endNode && !nodes.includes(endNode)) {
+    return fail(`Destination node "${endNode}" does not exist.`);
   }
-}`,
-  python: `def dfs(graph, start):
-    stack = [start]
-    visited = {start}
-    previous = {}
 
-    while stack:
-        current = stack.pop()
-        for neighbor in reversed(graph[current]):
-            if neighbor not in visited:
-                visited.add(neighbor)
-                previous[neighbor] = current
-                stack.append(neighbor)
-
-    return visited, previous`,
-};
-
-function makeAdjacency(graph: GraphRequest): Map<string, Edge[]> {
   const adjacency = new Map<string, Edge[]>();
-  graph.nodes.forEach((node) => adjacency.set(node, []));
+  nodes.forEach((node) => adjacency.set(node, []));
 
-  for (const edge of graph.edges) {
+  for (const edge of edges) {
+    if (!adjacency.has(edge.from) || !adjacency.has(edge.to)) {
+      return fail(`Edge ${edge.from} → ${edge.to} contains an unknown node.`);
+    }
+
     adjacency.get(edge.from)!.push(edge);
 
-    if (!graph.directed) {
+    if (!directed) {
       adjacency.get(edge.to)!.push({
         from: edge.to,
         to: edge.from,
@@ -71,117 +72,95 @@ function makeAdjacency(graph: GraphRequest): Map<string, Edge[]> {
     }
   }
 
-  for (const edges of adjacency.values()) {
-    edges.sort((a, b) => a.to.localeCompare(b.to));
-  }
-
-  return adjacency;
-}
-
-export function runDfs(graph: GraphRequest): GraphResult {
-  const errors = validateGraphInput("dfs", graph);
-  if (errors.length) throw new Error(errors.join(" "));
-
-  const adjacency = makeAdjacency(graph);
-  const stack = [graph.startNode];
-  const visited = new Set<string>([graph.startNode]);
-  const visitedNodes: string[] = [];
-  const previous = new Map<string, string>();
-  const distances: Record<string, number> = Object.fromEntries(
-    graph.nodes.map((node) => [node, Infinity]),
-  );
-  const selectedEdges: Edge[] = [];
-  const steps: GraphStep[] = [];
-
-  distances[graph.startNode] = 0;
-
-  const record = (
-    action: GraphStep["action"],
-    message: string,
-    extra: Partial<GraphStep> = {},
-  ) => {
-    steps.push({
-      stepNumber: steps.length,
-      action,
-      message,
-      explanation: message,
-      visitedNodes: [...visitedNodes],
-      queue: [],
-      stack: [...stack],
-      distances: { ...distances },
-      selectedEdges: selectedEdges.map((edge) => ({ ...edge })),
-      totalWeight: 0,
-      sourceLine: 1,
-      ...extra,
-    });
-  };
-
-  record("start", `Start DFS at ${graph.startNode}.`);
+  distances[startNode] = 0;
+  stack.push(startNode);
+  steps.push(makeStep(
+    "start",
+    `Start DFS from ${startNode}.`,
+    "Depth-first search uses a last-in, first-out stack to explore a branch before backtracking.",
+    { currentNode: startNode, sourceLine: 1 },
+  ));
 
   while (stack.length > 0) {
     const current = stack.pop()!;
 
-    visitedNodes.push(current);
+    if (visited.has(current)) continue;
 
-    record("visit", `Pop and visit ${current}.`, {
-      currentNode: current,
-      sourceLine: 5,
-    });
+    visited.add(current);
+    visitedOrder.push(current);
 
-    if (current === graph.endNode) break;
+    steps.push(makeStep(
+      "visit",
+      `Visit node ${current}.`,
+      `Pop ${current} from the stack and mark it as visited.`,
+      { currentNode: current, sourceLine: 2 },
+    ));
 
-    const neighbors = [...(adjacency.get(current) ?? [])].reverse();
+    if (current === endNode) break;
 
-    for (const edge of neighbors) {
-      if (visited.has(edge.to)) continue;
+    const neighbors = adjacency.get(current) ?? [];
 
-      visited.add(edge.to);
-      previous.set(edge.to, current);
-      distances[edge.to] = distances[current] + 1;
-      selectedEdges.push(edge);
-      stack.push(edge.to);
+    // Reverse push order so the first listed neighbor is processed first.
+    for (let i = neighbors.length - 1; i >= 0; i--) {
+      const edge = neighbors[i];
+      const neighbor = edge.to;
 
-      record("push", `Push ${edge.to} onto the stack.`, {
-        currentNode: current,
-        edgeFrom: edge.from,
-        edgeTo: edge.to,
-        activeEdge: edge,
-        sourceLine: 10,
-      });
+      steps.push(makeStep(
+        "compare",
+        `Examine edge ${current} → ${neighbor}.`,
+        `Check whether ${neighbor} has already been visited.`,
+        { currentNode: current, edgeFrom: current, edgeTo: neighbor,
+          activeEdge: edge, sourceLine: 3 },
+      ));
+
+      if (visited.has(neighbor)) continue;
+
+      if (!stack.includes(neighbor)) {
+        parent[neighbor] = current;
+        distances[neighbor] = distances[current] + 1;
+        stack.push(neighbor);
+        selectedEdges.push(edge);
+
+        steps.push(makeStep(
+          "push",
+          `Push ${neighbor} onto the stack.`,
+          `Add ${neighbor} for later exploration. Its discovery depth is ${distances[neighbor]}.`,
+          { currentNode: neighbor, node: neighbor, edgeFrom: current,
+            edgeTo: neighbor, activeEdge: edge, sourceLine: 4 },
+        ));
+      }
     }
   }
 
   const path: string[] = [];
-
-  if (graph.endNode && visited.has(graph.endNode)) {
-    let current: string | undefined = graph.endNode;
-
-    while (current !== undefined) {
-      path.push(current);
-      if (current === graph.startNode) break;
-      current = previous.get(current);
+  if (endNode && visited.has(endNode)) {
+    let current: string | undefined = endNode;
+    while (current) {
+      path.unshift(current);
+      current = parent[current];
     }
-
-    path.reverse();
   }
 
-  record(
+  const totalWeight = selectedEdges.reduce((sum, edge) => sum + edge.weight, 0);
+
+  steps.push(makeStep(
     "complete",
-    graph.endNode
+    "DFS completed.",
+    endNode
       ? path.length
-        ? `DFS found a path containing ${path.length - 1} edges.`
-        : `No path exists to ${graph.endNode}.`
-      : "DFS traversal finished.",
-    { sourceLine: 14 },
-  );
+        ? `A traversal path from ${startNode} to ${endNode} was found. DFS does not guarantee the shortest path.`
+        : `No path exists from ${startNode} to ${endNode}.`
+      : `Traversal finished after visiting ${visitedOrder.length} node(s).`,
+    { currentNode: visitedOrder[visitedOrder.length - 1], sourceLine: 5 },
+  ));
 
   return {
     algorithm: "dfs",
     steps,
-    visitedOrder: visitedNodes,
+    visitedOrder,
     selectedEdges,
-    distances,
+    distances: { ...distances },
     path,
-    totalWeight: 0,
+    totalWeight,
   };
 }

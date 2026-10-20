@@ -30,14 +30,16 @@ export interface AlgorithmConfig {
   description: string;
   timeComplexity: AlgorithmComplexity;
   spaceComplexity: string;
-  sourceCode: string | {
-    typescript?: string;
-    cpp?: string;
-    python?: string;
-  };
+  sourceCode:
+    | string
+    | {
+        typescript?: string;
+        cpp?: string;
+        python?: string;
+      };
+  requiresWeights: boolean;
   requiresDestination: boolean;
 }
-
 export interface Edge {
   from: string;
   to: string;

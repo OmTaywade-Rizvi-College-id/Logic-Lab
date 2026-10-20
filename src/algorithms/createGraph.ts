@@ -1,45 +1,52 @@
 // src/algorithms/createGraph.ts
 
-import type {
-  Edge,
-  GraphAlgorithmId,
-  GraphRequest,
-} from "../types";
+import type { Edge } from "../types";
+
+export interface GraphNode {
+  id: string;
+  neighbors: Edge[];
+}
+
+export interface Graph {
+  nodes: string[];
+  edges: Edge[];
+  adjacency: Record<string, Edge[]>;
+  directed: boolean;
+}
 
 export function createGraph(
-  nodeCount: number,
-  edges: Edge[] = [],
-  source?: string,
-  destination?: string,
-  undirected = true,
-  algorithm: GraphAlgorithmId = "dijkstra",
-): GraphRequest {
-  if (
-    !Number.isInteger(nodeCount) ||
-    nodeCount < 1 ||
-    nodeCount > 100
-  ) {
-    throw new Error("Node count must be an integer from 1 to 100.");
+  nodes: string[],
+  edges: Edge[],
+  directed: boolean,
+): Graph {
+  const adjacency: Record<string, Edge[]> = {};
+
+  for (const node of nodes) {
+    adjacency[node] = [];
   }
 
-  const nodes = Array.from({ length: nodeCount }, (_, index) =>
-    index < 26 ? String.fromCharCode(65 + index) : `N${index + 1}`,
-  );
+  for (const edge of edges) {
+    if (!adjacency[edge.from] || !adjacency[edge.to]) {
+      throw new Error(
+        `Invalid edge: ${edge.from} → ${edge.to}. Node does not exist.`,
+      );
+    }
 
-  const startNode =
-    source && nodes.includes(source) ? source : nodes[0];
+    adjacency[edge.from].push(edge);
 
-  const endNode =
-    destination && nodes.includes(destination)
-      ? destination
-      : nodes[Math.min(1, nodes.length - 1)];
+    if (!directed) {
+      adjacency[edge.to].push({
+        from: edge.to,
+        to: edge.from,
+        weight: edge.weight,
+      });
+    }
+  }
 
   return {
-    algorithm,
-    nodes,
-    edges: edges.map((edge) => ({ ...edge })),
-    startNode,
-    endNode,
-    directed: algorithm === "prim" ? false : !undirected,
+    nodes: [...nodes],
+    edges: [...edges],
+    adjacency,
+    directed,
   };
 }

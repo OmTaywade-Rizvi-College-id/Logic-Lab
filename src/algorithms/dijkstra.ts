@@ -1,88 +1,73 @@
 // src/algorithms/dijkstra.ts
 
 import type { Edge, GraphRequest, GraphResult, GraphStep } from "../types";
-import { validateGraphInput } from "./validation";
 
-export const dijkstraSource = {
-  typescript: `function dijkstra(graph, start, destination) {
-  const distances = initializeDistances(graph, Infinity);
-  const previous = new Map();
-  const visited = new Set();
-  distances[start] = 0;
+export function dijkstra(request: GraphRequest): GraphResult {
+  const { nodes, edges, startNode, endNode, directed } = request;
+  const steps: GraphStep[] = [];
+  const visited = new Set<string>();
+  const visitedOrder: string[] = [];
+  const selectedEdges: Edge[] = [];
+  const distances: Record<string, number> = {};
+  const previous: Record<string, string | undefined> = {};
 
-  while (true) {
-    const current = nearestUnvisited(distances, visited);
-    if (current === undefined) break;
+  nodes.forEach((node) => { distances[node] = Infinity; });
 
-    visited.add(current);
-    if (current === destination) break;
+  const makeStep = (
+    action: GraphStep["action"],
+    message: string,
+    explanation: string,
+    state: Partial<GraphStep> = {},
+  ): GraphStep => ({
+    stepNumber: steps.length + 1,
+    action,
+    message,
+    explanation,
+    visitedNodes: [...visitedOrder],
+    visited: [...visitedOrder],
+    queue: [],
+    stack: [],
+    distances: { ...distances },
+    distanceSnapshot: { ...distances },
+    selectedEdges: [...selectedEdges],
+    totalWeight: selectedEdges.reduce((sum, edge) => sum + edge.weight, 0),
+    ...state,
+  });
 
-    for (const edge of graph[current]) {
-      const candidate = distances[current] + edge.weight;
-      if (candidate < distances[edge.to]) {
-        distances[edge.to] = candidate;
-        previous.set(edge.to, current);
-      }
-    }
+  const fail = (message: string): GraphResult => ({
+    algorithm: "dijkstra",
+    steps: [makeStep("error", message, message)],
+    visitedOrder: [],
+    selectedEdges: [],
+    distances: { ...distances },
+    path: [],
+    totalWeight: 0,
+    error: message,
+  });
+
+  if (!nodes.includes(startNode)) {
+    return fail(`Start node "${startNode}" does not exist.`);
   }
 
-  return { distances, previous };
-}`,
-  cpp: `// Dijkstra using a min-priority queue.
-// All edge weights must be non-negative.
-vector<int> dijkstra(Graph& graph, int start) {
-  vector<int> dist(graph.size(), INF);
-  priority_queue<pair<int,int>,
-    vector<pair<int,int>>, greater<>> pq;
-  dist[start] = 0;
-  pq.push({0, start});
-
-  while (!pq.empty()) {
-    auto [cost, node] = pq.top();
-    pq.pop();
-    if (cost != dist[node]) continue;
-
-    for (auto [next, weight] : graph[node]) {
-      if (cost + weight < dist[next]) {
-        dist[next] = cost + weight;
-        pq.push({dist[next], next});
-      }
-    }
+  if (endNode && !nodes.includes(endNode)) {
+    return fail(`Destination node "${endNode}" does not exist.`);
   }
-  return dist;
-}`,
-  python: `import heapq
 
-def dijkstra(graph, start):
-    distances = {node: float("inf") for node in graph}
-    distances[start] = 0
-    previous = {}
-    heap = [(0, start)]
+  if (edges.some((edge) => !Number.isFinite(edge.weight) || edge.weight < 0)) {
+    return fail("Dijkstra requires finite, non-negative edge weights.");
+  }
 
-    while heap:
-        cost, node = heapq.heappop(heap)
-        if cost != distances[node]:
-            continue
-
-        for neighbor, weight in graph[node]:
-            candidate = cost + weight
-            if candidate < distances[neighbor]:
-                distances[neighbor] = candidate
-                previous[neighbor] = node
-                heapq.heappush(heap, (candidate, neighbor))
-
-    return distances, previous`,
-};
-
-function buildAdjacency(graph: GraphRequest): Map<string, Edge[]> {
   const adjacency = new Map<string, Edge[]>();
+  nodes.forEach((node) => adjacency.set(node, []));
 
-  for (const node of graph.nodes) adjacency.set(node, []);
+  for (const edge of edges) {
+    if (!adjacency.has(edge.from) || !adjacency.has(edge.to)) {
+      return fail(`Edge ${edge.from} → ${edge.to} contains an unknown node.`);
+    }
 
-  for (const edge of graph.edges) {
     adjacency.get(edge.from)!.push(edge);
 
-    if (!graph.directed) {
+    if (!directed) {
       adjacency.get(edge.to)!.push({
         from: edge.to,
         to: edge.from,
@@ -91,135 +76,117 @@ function buildAdjacency(graph: GraphRequest): Map<string, Edge[]> {
     }
   }
 
-  for (const edges of adjacency.values()) {
-    edges.sort((a, b) => a.to.localeCompare(b.to));
-  }
+  distances[startNode] = 0;
 
-  return adjacency;
-}
+  steps.push(makeStep(
+    "start",
+    `Start Dijkstra from ${startNode}.`,
+    "Set the source distance to zero and every other distance to infinity.",
+    { currentNode: startNode, sourceLine: 1 },
+  ));
 
-export function runDijkstra(graph: GraphRequest): GraphResult {
-  const errors = validateGraphInput("dijkstra", graph);
-  if (errors.length) throw new Error(errors.join(" "));
-
-  const adjacency = buildAdjacency(graph);
-  const distances: Record<string, number> = Object.fromEntries(
-    graph.nodes.map((node) => [node, Infinity]),
-  );
-
-  distances[graph.startNode] = 0;
-
-  const visited = new Set<string>();
-  const previous = new Map<string, string>();
-  const steps: GraphStep[] = [];
-  const visitedNodes: string[] = [];
-  const selectedEdges: Edge[] = [];
-
-  const record = (
-    action: GraphStep["action"],
-    message: string,
-    extra: Partial<GraphStep> = {},
-  ) => {
-    steps.push({
-      stepNumber: steps.length,
-      action,
-      message,
-      explanation: message,
-      visitedNodes: [...visitedNodes],
-      queue: [],
-      stack: [],
-      distances: { ...distances },
-      selectedEdges: selectedEdges.map((edge) => ({ ...edge })),
-      totalWeight: 0,
-      sourceLine: 1,
-      ...extra,
-    });
-  };
-
-  record("start", `Start Dijkstra at ${graph.startNode}.`);
-
-  while (true) {
+  while (visited.size < nodes.length) {
     let current: string | undefined;
-    let bestDistance = Infinity;
+    let minimum = Infinity;
 
-    for (const node of graph.nodes) {
-      if (!visited.has(node) && distances[node] < bestDistance) {
+    for (const node of nodes) {
+      if (!visited.has(node) && distances[node] < minimum) {
+        minimum = distances[node];
         current = node;
-        bestDistance = distances[node];
       }
     }
 
-    // Remaining nodes are unreachable.
     if (current === undefined) break;
 
     visited.add(current);
-    visitedNodes.push(current);
+    visitedOrder.push(current);
 
-    record("visit", `Visit ${current}, distance ${distances[current]}.`, {
-      currentNode: current,
-      sourceLine: 7,
-    });
+    steps.push(makeStep(
+      "visit",
+      `Visit ${current} with distance ${distances[current]}.`,
+      `Choose the unvisited node with the smallest known distance (${distances[current]}).`,
+      { currentNode: current, distance: distances[current], sourceLine: 2 },
+    ));
 
-    if (current === graph.endNode) break;
+    if (current === endNode) {
+      steps.push(makeStep(
+        "complete",
+        `Destination ${endNode} reached.`,
+        "Because this is the smallest unvisited distance, its shortest distance is finalized.",
+        { currentNode: current, sourceLine: 3 },
+      ));
+      break;
+    }
 
     for (const edge of adjacency.get(current) ?? []) {
-      if (visited.has(edge.to)) continue;
+      const neighbor = edge.to;
 
-      record("compare", `Check edge ${current} → ${edge.to}.`, {
-        currentNode: current,
-        edgeFrom: edge.from,
-        edgeTo: edge.to,
-        activeEdge: edge,
-        sourceLine: 10,
-      });
+      steps.push(makeStep(
+        "compare",
+        `Check edge ${current} → ${neighbor} (weight ${edge.weight}).`,
+        `Compare the current distance to ${neighbor} with ${distances[current]} + ${edge.weight}.`,
+        { currentNode: current, edgeFrom: current, edgeTo: neighbor,
+          activeEdge: edge, distance: distances[neighbor], sourceLine: 4 },
+      ));
+
+      if (visited.has(neighbor)) continue;
 
       const candidate = distances[current] + edge.weight;
 
-      if (candidate < distances[edge.to]) {
-        distances[edge.to] = candidate;
-        previous.set(edge.to, current);
+      if (candidate < distances[neighbor]) {
+        distances[neighbor] = candidate;
+        previous[neighbor] = current;
 
-        record("relax", `Update distance of ${edge.to} to ${candidate}.`, {
-          currentNode: current,
-          edgeFrom: edge.from,
-          edgeTo: edge.to,
-          activeEdge: edge,
-          sourceLine: 11,
-        });
+        steps.push(makeStep(
+          "relax",
+          `Update distance of ${neighbor} to ${candidate}.`,
+          `The route through ${current} is shorter. Set distance(${neighbor}) = ${candidate}.`,
+          { currentNode: neighbor, edgeFrom: current, edgeTo: neighbor,
+            activeEdge: edge, distance: candidate, sourceLine: 5 },
+        ));
       }
     }
   }
 
   const path: string[] = [];
-  if (graph.endNode && Number.isFinite(distances[graph.endNode])) {
-    let node: string | undefined = graph.endNode;
+  if (endNode && Number.isFinite(distances[endNode])) {
+    let current: string | undefined = endNode;
 
-    while (node !== undefined) {
-      path.push(node);
-      if (node === graph.startNode) break;
-      node = previous.get(node);
+    while (current) {
+      path.unshift(current);
+      current = previous[current];
     }
 
-    path.reverse();
+    for (let i = 0; i < path.length - 1; i++) {
+      const edge = adjacency.get(path[i])?.find(
+        (item) => item.to === path[i + 1],
+      );
+      if (edge) selectedEdges.push(edge);
+    }
   }
 
-  record(
+  const totalWeight = selectedEdges.reduce((sum, edge) => sum + edge.weight, 0);
+
+  steps.push(makeStep(
     "complete",
-    graph.endNode
-      ? path.length > 0
-        ? `Shortest path cost: ${distances[graph.endNode]}.`
-        : `No path exists to ${graph.endNode}.`
-      : "Shortest distances calculated.",
-    { sourceLine: 15 },
-  );
+    "Dijkstra completed.",
+    endNode
+      ? Number.isFinite(distances[endNode])
+        ? `Shortest path: ${path.join(" → ")}. Total weight: ${distances[endNode]}.`
+        : `Destination ${endNode} is unreachable from ${startNode}.`
+      : "All reachable nodes have been processed.",
+    { currentNode: visitedOrder[visitedOrder.length - 1], sourceLine: 6 },
+  ));
 
   return {
     algorithm: "dijkstra",
     steps,
-    visitedOrder: visitedNodes,
+    visitedOrder,
     selectedEdges,
-    distances,
+    distances: { ...distances },
     path,
-    totalWeight: 0,
+    totalWeight: endNode && Number.isFinite(distances[endNode])
+      ? distances[endNode]
+      : totalWeight,
   };
 }

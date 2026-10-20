@@ -25,12 +25,10 @@ export default function AlgorithmSelector({
       <span className="relative block">
         <select
           value={value}
-          onChange={(event) =>
-            onChange(event.target.value as AlgorithmId)
-          }
+          onChange={(event) => onChange(event.target.value as AlgorithmId)}
           disabled={disabled}
           aria-label="Select algorithm"
-          className="w-full appearance-none rounded-md border border-[#dce4d6] bg-[#f8faf5] px-3 py-2.5 pr-9 text-sm font-medium text-[#203626] outline-none transition focus:border-[#8ba45e] focus:ring-2 focus:ring-[#8ba45e]/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full appearance-none rounded-md border border-[#dce4d6] bg-[#f8faf5] px-3 py-2.5 pr-9 text-sm font-medium text-[#203626] outline-none focus:border-[#8ba45e] focus:ring-2 focus:ring-[#8ba45e]/20 disabled:opacity-50"
         >
           {algorithms.map((algorithm) => (
             <option key={algorithm.id} value={algorithm.id}>
