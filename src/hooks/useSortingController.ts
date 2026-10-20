@@ -1,10 +1,12 @@
-
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import type {
   SortingAlgorithmId,
+  SortingRequest,
   SortingResult,
   SortingStep,
 } from "../types";
+
 import { runSortingAlgorithm } from "../api";
 
 const DEFAULT_VALUES = [34, 12, 78, 9, 56];
@@ -35,7 +37,7 @@ export function useSortingController(algorithm: SortingAlgorithmId) {
   }, [stopTimer]);
 
   const reset = useCallback(() => {
-    requestIdRef.current++;
+    requestIdRef.current += 1;
     stopTimer();
     setPlaying(false);
     setBusy(false);
@@ -50,13 +52,13 @@ export function useSortingController(algorithm: SortingAlgorithmId) {
 
   useEffect(() => {
     return () => {
-      requestIdRef.current++;
+      requestIdRef.current += 1;
       stopTimer();
     };
   }, [stopTimer]);
 
   const run = useCallback(
-    async (inputValues: number[], inputAscending: boolean) => {
+    async (inputValues: number[], inputAscending = true) => {
       const requestId = ++requestIdRef.current;
 
       stopTimer();
@@ -69,21 +71,27 @@ export function useSortingController(algorithm: SortingAlgorithmId) {
       setStepIndex(0);
 
       try {
-        const data = await runSortingAlgorithm(
+        const request: SortingRequest = {
           algorithm,
-          inputValues,
-          inputAscending
+          values: [...inputValues],
+          ascending: inputAscending,
+        };
+
+        const data = await Promise.resolve(
+          runSortingAlgorithm(request),
         );
 
         if (requestId !== requestIdRef.current) return;
 
         setResult(data);
         setStepIndex(0);
-      } catch (err) {
+      } catch (cause) {
         if (requestId !== requestIdRef.current) return;
 
         setError(
-          err instanceof Error ? err.message : "Unable to run sorting."
+          cause instanceof Error
+            ? cause.message
+            : "Unable to run sorting.",
         );
       } finally {
         if (requestId === requestIdRef.current) {
@@ -91,7 +99,7 @@ export function useSortingController(algorithm: SortingAlgorithmId) {
         }
       }
     },
-    [algorithm, stopTimer]
+    [algorithm, stopTimer],
   );
 
   const next = useCallback(() => {
@@ -108,17 +116,15 @@ export function useSortingController(algorithm: SortingAlgorithmId) {
   useEffect(() => {
     if (!playing || !result) return;
 
+    if (stepIndex >= result.steps.length - 1) {
+      setPlaying(false);
+      return;
+    }
+
     timerRef.current = setTimeout(() => {
-      setStepIndex((current) => {
-        const lastIndex = result.steps.length - 1;
-
-        if (current >= lastIndex) {
-          setPlaying(false);
-          return current;
-        }
-
-        return current + 1;
-      });
+      setStepIndex((current) =>
+        Math.min(current + 1, result.steps.length - 1),
+      );
     }, speed);
 
     return stopTimer;

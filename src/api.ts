@@ -1,5 +1,3 @@
-// src/api.ts
-
 import type {
   AlgorithmId,
   GraphAlgorithmId,
@@ -11,7 +9,9 @@ import type {
 } from "./types";
 
 import { runGraphAlgorithm } from "./algorithms/graphAlgorithms";
-import { runSortingAlgorithm } from "./algorithms/sortingAlgorithms";
+import {
+  runSortingAlgorithm as executeSorting,
+} from "./algorithms/sortingAlgorithms";
 
 export function isGraphAlgorithm(
   id: AlgorithmId,
@@ -35,13 +35,27 @@ export function isSortingAlgorithm(
 }
 
 export function runAlgorithm(
+  request: GraphRequest,
+): GraphResult;
+
+export function runAlgorithm(
+  request: SortingRequest,
+): SortingResult;
+
+export function runAlgorithm(
   request: GraphRequest | SortingRequest,
 ): GraphResult | SortingResult {
   if (isGraphAlgorithm(request.algorithm)) {
     return runGraphAlgorithm(request as GraphRequest);
   }
 
-  return runSortingAlgorithm(request as SortingRequest);
+  return executeSorting(request as SortingRequest);
+}
+
+export function runSortingAlgorithm(
+  request: SortingRequest,
+): SortingResult {
+  return executeSorting(request);
 }
 
 export type {

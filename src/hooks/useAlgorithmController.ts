@@ -1,5 +1,3 @@
-// src/hooks/useAlgorithmController.ts
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
@@ -9,6 +7,7 @@ import type {
   GraphResult,
   GraphStep,
   SortingAlgorithmId,
+  SortingRequest,
   SortingResult,
   SortingStep,
 } from "../types";
@@ -16,25 +15,14 @@ import type {
 import {
   runAlgorithm,
   runSortingAlgorithm,
+  isGraphAlgorithm,
+  isSortingAlgorithm,
 } from "../api";
 
 import { usePlayback } from "./usePlayback";
 
 type ExecutionResult = GraphResult | SortingResult;
 type ExecutionStep = GraphStep | SortingStep;
-
-const GRAPH_ALGORITHMS = new Set<AlgorithmId>([
-  "dijkstra",
-  "bfs",
-  "dfs",
-  "prim",
-]);
-
-const SORTING_ALGORITHMS = new Set<AlgorithmId>([
-  "selectionSort",
-  "insertionSort",
-  "quickSort",
-]);
 
 interface AlgorithmControllerOptions {
   algorithm: AlgorithmId;
@@ -47,8 +35,8 @@ export function useAlgorithmController({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const isGraph = GRAPH_ALGORITHMS.has(algorithm);
-  const isSorting = SORTING_ALGORITHMS.has(algorithm);
+  const isGraph = isGraphAlgorithm(algorithm);
+  const isSorting = isSortingAlgorithm(algorithm);
 
   const steps = useMemo<ExecutionStep[]>(
     () => (result ? result.steps : []),
@@ -83,10 +71,16 @@ export function useAlgorithmController({
       playback.reset();
 
       try {
-        const graphResult = runAlgorithm(
-          algorithm as GraphAlgorithmId,
-          request,
-        );
+        const graphRequest: GraphRequest = {
+          ...request,
+          algorithm: algorithm as GraphAlgorithmId,
+        };
+
+        const graphResult = runAlgorithm(graphRequest);
+
+        if (!("visitedOrder" in graphResult)) {
+          throw new Error("Expected a graph algorithm result.");
+        }
 
         setResult(graphResult);
         return graphResult;
@@ -121,11 +115,13 @@ export function useAlgorithmController({
       playback.reset();
 
       try {
-        const sortingResult = runSortingAlgorithm(
-          algorithm as SortingAlgorithmId,
+        const sortingRequest: SortingRequest = {
+          algorithm: algorithm as SortingAlgorithmId,
           values,
           ascending,
-        );
+        };
+
+        const sortingResult = runSortingAlgorithm(sortingRequest);
 
         setResult(sortingResult);
         return sortingResult;

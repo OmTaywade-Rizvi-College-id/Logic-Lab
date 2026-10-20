@@ -27,6 +27,9 @@ import type {
   GraphRequest,
   GraphResult,
   GraphStep,
+  SortingAlgorithmId,
+  SortingResult,
+  SortingRequest,
 } from "../types";
 
 const INITIAL_NODES = ["A", "B", "C", "D", "E", "F"];
@@ -65,6 +68,9 @@ export default function ExploreAlgorithms() {
   const [editorOpen, setEditorOpen] = useState(false);
 
   const [result, setResult] = useState<GraphResult | null>(null);
+  const [sortingResult, setSortingResult] = useState<SortingResult | null>(null);
+  const [sortingStepIndex, setSortingStepIndex] = useState(0);
+  const [sortingValues] = useState<number[]>([34, 12, 78, 9, 56]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -97,6 +103,8 @@ export default function ExploreAlgorithms() {
   const clearExecution = useCallback(() => {
     playback.reset();
     setResult(null);
+    setSortingResult(null);
+    setSortingStepIndex(0);
     setError(null);
   }, [playback.reset]);
 
@@ -105,6 +113,8 @@ export default function ExploreAlgorithms() {
       setAlgorithmId(id);
       playback.reset();
       setResult(null);
+      setSortingResult(null);
+      setSortingStepIndex(0);
       setError(null);
       setBusy(false);
 
@@ -115,6 +125,35 @@ export default function ExploreAlgorithms() {
     },
     [playback.reset],
   );
+
+  const executeSortingAlgorithm = useCallback(() => {
+    if (isGraph || !["selectionSort", "insertionSort", "quickSort"].includes(algorithmId)) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    setSortingResult(null);
+    setSortingStepIndex(0);
+
+    try {
+      const request: SortingRequest = {
+        algorithm: algorithmId as SortingAlgorithmId,
+        values: [...sortingValues],
+        ascending: true,
+      };
+      const executionResult = runAlgorithm(request);
+      if ("sortedArray" in executionResult) {
+        setSortingResult(executionResult);
+      } else {
+        throw new Error("Expected a sorting result, but received a graph result.");
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Sorting algorithm execution failed.");
+    } finally {
+      setBusy(false);
+    }
+  }, [algorithmId, isGraph, sortingValues]);
 
   const executeAlgorithm = useCallback(() => {
     if (!isGraph || !isGraphAlgorithm(algorithmId)) {
@@ -328,10 +367,31 @@ export default function ExploreAlgorithms() {
 
         <main>
           {isSorting ? (
-            <SortingWorkspace
-              key={algorithmId}
-              algorithm={algorithmId as "selectionSort" | "insertionSort" | "quickSort"}
-            />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={executeSortingAlgorithm}
+                  disabled={busy}
+                  className="rounded-lg bg-[#203626] px-4 py-2 text-sm font-semibold text-lime-200 disabled:opacity-50"
+                >
+                  {busy ? "Running…" : "Run sorting"}
+                </button>
+              </div>
+              {error && (
+                <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">
+                  {error}
+                </p>
+              )}
+              <SortingWorkspace
+  algorithm={
+    algorithmId as "selectionSort" | "insertionSort" | "quickSort"
+  }
+  result={sortingResult}
+  stepIndex={sortingStepIndex}
+  onSelectStep={setSortingStepIndex}
+/>
+            </div>
           ) : (
             <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(280px,.8fr)]">
               <div className="space-y-2">
@@ -508,15 +568,14 @@ export default function ExploreAlgorithms() {
 
               <div>
                 <ExecutionTrace
-                  result={result}
-                  stepIndex={stepIndex}
-                  nodes={INITIAL_NODES}
-                  onSelectStep={(index) => {
-                    playback.pause();
-                    playback.seek(index);
-                    scrollToGraph();
-                  }}
-                />
+  steps={graphSteps}
+  currentStep={stepIndex}
+  onSelectStep={(index) => {
+    playback.pause();
+    playback.seek(index);
+    scrollToGraph();
+  }}
+/>
               </div>
             </div>
           )}
