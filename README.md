@@ -20,7 +20,7 @@
 | 1 | Abrarkhan Mokashi | 251P054 |
 | 2 | Om Satish Taywade | 251P027 |
 | 3 | Shashvat Nilesh Kawali | 251P023 |
-| 4 | Ayush Jha | 251P042 |
+| 4 | Aayush Jha | 251P042 |
 
 ---
 
