@@ -1,0 +1,522 @@
+
+.about-page {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 42px 28px 72px;
+  color: var(--text-primary, #f1f5f9);
+}
+
+.about-page * {
+  box-sizing: border-box;
+}
+
+.about-hero {
+  min-height: 420px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: center;
+  gap: 32px;
+  padding: 48px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 28px;
+  background:
+    radial-gradient(ellipse at 80% 45%, rgba(45, 212, 191, 0.12), transparent 50%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(10, 20, 32, 0.95));
+  overflow: hidden;
+}
+
+.about-hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.about-page .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5eead4;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.about-page h1,
+.about-page h2,
+.about-page h3,
+.about-page p {
+  margin-top: 0;
+}
+
+.about-hero h1 {
+  margin: 22px 0 18px;
+  font-size: clamp(2.3rem, 4.2vw, 3.8rem);
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+}
+
+.gradient-text {
+  color: #5eead4;
+  background: linear-gradient(100deg, #5eead4, #a7f3d0);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.about-hero-description {
+  max-width: 590px;
+  color: #a8b5c7;
+  font-size: 1rem;
+  line-height: 1.85;
+}
+
+.about-hero-tags,
+.about-team-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 24px;
+}
+
+.about-hero-tags span,
+.about-team-tags span {
+  padding: 8px 12px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.06);
+  color: #b8f6eb;
+  font-size: 0.77rem;
+}
+
+.about-hero-visual {
+  min-height: 300px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.about-orbit {
+  position: absolute;
+  width: 270px;
+  height: 270px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  border-radius: 50%;
+}
+
+.orbit-two {
+  width: 205px;
+  height: 205px;
+  border-style: dashed;
+  border-color: rgba(94, 234, 212, 0.3);
+}
+
+.about-core {
+  width: 174px;
+  height: 174px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid rgba(94, 234, 212, 0.35);
+  border-radius: 30px;
+  background: rgba(15, 35, 45, 0.95);
+  box-shadow: 0 0 70px rgba(45, 212, 191, 0.12);
+  color: #5eead4;
+  transform: rotate(-4deg);
+}
+
+.about-core span {
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+}
+
+.about-core small {
+  color: #9fb4c4;
+  font-size: 0.63rem;
+}
+
+.floating-node {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(94, 234, 212, 0.35);
+  border-radius: 14px;
+  background: #142733;
+  color: #99f6e4;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.node-one {
+  top: 26px;
+  left: 14%;
+}
+
+.node-two {
+  right: 12%;
+  bottom: 30px;
+}
+
+.node-three {
+  top: 35px;
+  right: 15%;
+}
+
+.node-four {
+  bottom: 27px;
+  left: 14%;
+}
+
+.about-section {
+  margin-top: 88px;
+}
+
+.about-section-heading {
+  max-width: 700px;
+  margin: 0 auto 34px;
+  text-align: center;
+}
+
+.about-section-heading h2,
+.about-goals-content h2 {
+  margin: 14px 0;
+  font-size: clamp(1.8rem, 3vw, 2.65rem);
+  letter-spacing: -0.045em;
+  line-height: 1.2;
+}
+
+.about-section-heading p,
+.about-goals-content > p {
+  color: #94a3b8;
+  line-height: 1.8;
+}
+
+.about-mission-grid,
+.about-features-grid,
+.about-tech-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.about-mission-card,
+.about-feature-card,
+.about-tech-card {
+  padding: 27px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.62);
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.about-mission-card:hover,
+.about-feature-card:hover,
+.about-tech-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(94, 234, 212, 0.35);
+}
+
+.mission-highlight {
+  background: linear-gradient(140deg, rgba(20, 55, 58, 0.55), rgba(15, 23, 42, 0.7));
+}
+
+.about-icon-box {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 22px;
+  border: 1px solid rgba(94, 234, 212, 0.2);
+  border-radius: 14px;
+  background: rgba(45, 212, 191, 0.09);
+  color: #5eead4;
+}
+
+.about-mission-card h3,
+.about-feature-card h3,
+.about-tech-card h3,
+.about-workflow-item h3,
+.about-team-card h3 {
+  margin-bottom: 10px;
+  font-size: 1.08rem;
+}
+
+.about-mission-card p,
+.about-feature-card p,
+.about-tech-card p,
+.about-workflow-item p,
+.about-team-card p {
+  margin-bottom: 0;
+  color: #94a3b8;
+  font-size: 0.92rem;
+  line-height: 1.8;
+}
+
+.about-features-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.about-feature-card {
+  min-height: 220px;
+}
+
+.about-workflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.about-workflow-item {
+  position: relative;
+  padding: 22px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.workflow-number {
+  margin-bottom: 22px;
+  color: #5eead4;
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.workflow-arrow {
+  position: absolute;
+  top: 28px;
+  right: -20px;
+  z-index: 1;
+  color: #5eead4;
+}
+
+.about-tech-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.about-tech-card {
+  padding: 22px;
+}
+
+.about-tech-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.about-tech-top .about-icon-box {
+  margin-bottom: 20px;
+}
+
+.tech-status {
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: rgba(94, 234, 212, 0.1);
+  color: #5eead4;
+  font-size: 0.59rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.tech-status.planned {
+  background: rgba(251, 191, 36, 0.09);
+  color: #fcd34d;
+}
+
+.tech-role {
+  display: block;
+  margin: -3px 0 12px;
+  color: #5eead4;
+  font-size: 0.78rem;
+}
+
+.about-goals-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 40px;
+  padding: 42px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  border-radius: 24px;
+  background: linear-gradient(120deg, rgba(20, 48, 54, 0.5), rgba(15, 23, 42, 0.65));
+}
+
+.about-goals-content h2 {
+  margin-top: 16px;
+}
+
+.about-goals-content > p {
+  margin-bottom: 0;
+}
+
+.about-goals-list {
+  display: grid;
+  gap: 17px;
+}
+
+.about-goal-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #d5e1eb;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.about-goal-item svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #5eead4;
+}
+
+.about-team-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 30px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.about-team-icon {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: rgba(45, 212, 191, 0.1);
+  color: #5eead4;
+}
+
+.about-team-tags {
+  margin-top: 18px;
+}
+
+.about-footer-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 88px;
+  padding: 46px 24px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  border-radius: 26px;
+  background: radial-gradient(ellipse at center, rgba(45, 212, 191, 0.1), transparent 70%);
+  text-align: center;
+}
+
+.about-footer-cta > svg {
+  margin-bottom: 16px;
+  color: #5eead4;
+}
+
+.about-footer-cta h2 {
+  margin-bottom: 10px;
+  font-size: 2rem;
+}
+
+.about-footer-cta p {
+  color: #94a3b8;
+  line-height: 1.7;
+}
+
+.about-cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 13px 19px;
+  border-radius: 12px;
+  background: #5eead4;
+  color: #082f32;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.about-cta-button:hover {
+  transform: translateY(-2px);
+  background: #99f6e4;
+}
+
+@media (max-width: 1000px) {
+  .about-hero {
+    grid-template-columns: 1fr;
+    padding: 36px;
+  }
+
+  .about-hero-visual {
+    min-height: 280px;
+  }
+
+  .about-tech-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .about-workflow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workflow-arrow {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .about-page {
+    padding: 24px 15px 48px;
+  }
+
+  .about-hero {
+    padding: 28px 22px;
+    border-radius: 20px;
+  }
+
+  .about-hero h1 {
+    font-size: 2.35rem;
+  }
+
+  .about-hero-visual {
+    min-height: 250px;
+    transform: scale(0.9);
+  }
+
+  .about-section {
+    margin-top: 62px;
+  }
+
+  .about-mission-grid,
+  .about-features-grid,
+  .about-tech-grid,
+  .about-workflow,
+  .about-goals-section {
+    grid-template-columns: 1fr;
+  }
+
+  .about-goals-section {
+    gap: 28px;
+    padding: 26px 22px;
+  }
+
+  .about-mission-card,
+  .about-feature-card,
+  .about-tech-card {
+    padding: 23px;
+  }
+
+  .about-team-card {
+    flex-direction: column;
+    padding: 25px;
+  }
+
+  .about-footer-cta {
+    margin-top: 62px;
+  }
+}
