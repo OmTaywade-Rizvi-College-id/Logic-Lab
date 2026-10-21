@@ -9,7 +9,7 @@ import {
 import gsap from "gsap";
 
 export interface GraphNode {
-  id: string
+  id: string;
   x: number;
   y: number;
 }
@@ -33,6 +33,45 @@ interface GraphCanvasProps {
   onNodeClick: (id: string) => void;
 }
 
+const MODE_STYLES: Record<
+  GraphMode,
+  { label: string; chip: string; dot: string }
+> = {
+  normal: {
+    label: "Explore",
+    chip: "border-[#b7d66e]/30 bg-[#b7d66e]/10 text-[#d9f99d]",
+    dot: "bg-[#b7e878]",
+  },
+  "add-edge": {
+    label: "Add edge",
+    chip: "border-[#f3cf7a]/35 bg-[#f3cf7a]/10 text-[#f6d08a]",
+    dot: "bg-[#f3cf7a]",
+  },
+  delete: {
+    label: "Delete",
+    chip: "border-rose-300/35 bg-rose-400/10 text-rose-200",
+    dot: "bg-rose-300",
+  },
+};
+
+// Colors used by both the SVG nodes and the legend, so they never drift apart.
+const COLORS = {
+  idle: { fill: "#27402d", stroke: "#7f967b" },
+  visited: { fill: "#315333", stroke: "#7fb069" },
+  path: { fill: "#45672f", stroke: "#d9f99d" },
+  current: { fill: "#526f34", stroke: "#e6f6c9" },
+  selected: { fill: "#66552b", stroke: "#f3cf7a" },
+  edge: "#66816a",
+  pathEdge: "#b7e878",
+};
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 function GraphCanvas({
   nodes = [],
   edges = [],
@@ -44,7 +83,6 @@ function GraphCanvas({
   onNodeClick = () => {},
 }: GraphCanvasProps) {
   const [showWeights, setShowWeights] = useState(true);
-  const panelRef = useRef<HTMLElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const gridId = `graph-grid-${useId().replace(/:/g, "")}`;
   const nodeRadius = 22;
@@ -69,66 +107,54 @@ function GraphCanvas({
     return false;
   }
 
-  function getEdgeLabelPosition(edge: GraphEdge) {
-    const from = getNode(edge.from);
-    const to = getNode(edge.to);
-    if (!from || !to) return { x: 0, y: 0 };
-
-    return {
-      x: (from.x + to.x) / 2,
-      y: (from.y + to.y) / 2 - 9,
-    };
-  }
-
-  useEffect(() => {
-    const panel = panelRef.current;
-    if (!panel) return;
-
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        panel,
-        { opacity: 0, y: 12 },
-        { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
-      );
-    }, panel);
-    return () => ctx.revert();
-  }, []);
-
+  // One entrance on first paint: the graph draws itself in.
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg) return;
+    if (!svg || prefersReducedMotion()) return;
 
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".graph-edge",
-        { opacity: 0, strokeDashoffset: 24 },
-        {
-          opacity: 1,
-          strokeDashoffset: 0,
-          duration: 0.45,
-          stagger: 0.025,
-          ease: "power2.out",
-        },
-      );
-      gsap.fromTo(
-        ".graph-node",
-        { opacity: 0, scale: 0.7 },
-        {
-          opacity: 1,
-          scale: 1,
-          duration: 0.4,
-          stagger: 0.045,
-          ease: "back.out(1.6)",
-        },
-      );
+      gsap.from(".graph-edge", {
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.025,
+        ease: "power2.out",
+      });
+      gsap.from(".graph-node", {
+        opacity: 0,
+        scale: 0.7,
+        duration: 0.4,
+        stagger: 0.045,
+        ease: "back.out(1.6)",
+      });
     }, svg);
 
     return () => ctx.revert();
-  }, [nodes, edges]);
+  }, []);
 
+  // Shortest path edges flow in the direction of travel.
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg) return;
+    if (!svg || prefersReducedMotion()) return;
+
+    const pathEdges = svg.querySelectorAll(".graph-path-edge");
+    if (pathEdges.length === 0) return;
+
+    const tween = gsap.to(pathEdges, {
+      strokeDashoffset: -24,
+      duration: 1.4,
+      repeat: -1,
+      ease: "none",
+    });
+
+    return () => {
+      tween.kill();
+    };
+  }, [shortestPath, edges]);
+
+  // The node being processed pulses.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || prefersReducedMotion()) return;
     const current = svg.querySelector(".graph-current-node");
 
     if (!current) return;
@@ -143,6 +169,7 @@ function GraphCanvas({
 
     return () => {
       tween.kill();
+      gsap.set(current, { opacity: 1 });
     };
   }, [currentNode]);
 
@@ -153,82 +180,54 @@ function GraphCanvas({
         ? "Select a node to delete it."
         : "Select nodes and explore the graph.";
 
+  const modeStyle = MODE_STYLES[mode] ?? MODE_STYLES.normal;
+
   return (
     <section
-      ref={panelRef}
-      className="relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#203626] text-slate-100 shadow-[0_20px_65px_rgba(0,0,0,0.16)]"
+      aria-label="Graph visualization"
+      className="overflow-hidden rounded-2xl border border-[#2b4631] bg-[#203626] text-[#e6f6c9]"
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-300/40 to-transparent" />
-      <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#b7d66e]/5 blur-3xl" />
-
-      {/* Header */}
-      <div className="relative flex flex-wrap items-start justify-between gap-4 border-b border-white/[0.10] px-5 py-5 sm:px-6">
-        <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#b8d58f]/30 bg-[#b7d66e]/10 text-[#d9f99d]">
-            <Waypoints size={21} />
-          </div>
-
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#d9f99d]">
-              Interactive workspace
-            </p>
-
-            <h3 className="mt-1 text-lg font-semibold text-white sm:text-xl">
-              Graph Visualization
-            </h3>
-
-            <p className="mt-1 text-xs leading-5 text-white/60">
-              {modeDescription}
-            </p>
-          </div>
+      {/* Header: what you are doing, how big the graph is, one toggle */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-4 sm:px-6">
+        <div className="min-w-0 flex-1 basis-64">
+          <h3 className="text-xl font-semibold tracking-tight text-white">
+            Graph visualization
+          </h3>
+          <p className="mt-1 text-sm leading-6 text-white/65">
+            {modeDescription}
+          </p>
         </div>
 
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-lg border border-white/[0.09] bg-white/[0.025] px-3 py-2 text-xs font-medium text-white/75 transition-colors hover:border-[#d9f99d]/40 hover:text-[#e6f6c9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]/60"
-          onClick={() => setShowWeights((previous) => !previous)}
-          aria-pressed={showWeights}
-        >
-          {showWeights ? <EyeOff size={15} /> : <Eye size={15} />}
-          {showWeights ? "Hide weights" : "Show weights"}
-        </button>
-      </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${modeStyle.chip}`}
+          >
+            <MousePointer2 size={13} aria-hidden="true" />
+            <span className="sr-only">Active mode: </span>
+            {modeStyle.label}
+          </span>
 
-      {/* Status and legend */}
-
-      <div className="relative flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-white/[0.08] px-5 py-3 text-xs text-white/60 sm:px-6">
-        <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full border-2 border-teal-300 bg-teal-300/10" />
-          Current node
-        </span>
-
-        <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full border-2 border-emerald-300 bg-emerald-300/10" />
-
-          Visited
-        </span>
-
-        <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full border-2 border-cyan-300 bg-cyan-300/10" />
-          Selected
-        </span>
-
-        <span className="inline-flex items-center gap-2">
-          <span className="h-0.5 w-4 rounded bg-gradient-to-r from-teal-300 to-cyan-300" />
-          Shortest path
-        </span>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]/70"
+            onClick={() => setShowWeights((previous) => !previous)}
+            aria-pressed={showWeights}
+          >
+            {showWeights ? <EyeOff size={14} /> : <Eye size={14} />}
+            {showWeights ? "Hide weights" : "Show weights"}
+          </button>
+        </div>
       </div>
 
       {/* SVG canvas */}
-
-      <div className="relative p-3 sm:p-5">
-        <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#14251a]">
+      <div className="px-3 sm:px-5">
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-[#14251a]">
           <svg
             ref={svgRef}
             viewBox="0 0 620 380"
-            role="img"
-            aria-label="Interactive weighted graph visualization"
-            className="block h-auto max-h-[520px] min-h-[250px] w-full"
+            role="group"
+            aria-label="Interactive weighted graph"
+            className="block h-auto max-h-[560px] min-h-[260px] w-full"
           >
             <defs>
               <pattern
@@ -237,26 +236,8 @@ function GraphCanvas({
                 height="25"
                 patternUnits="userSpaceOnUse"
               >
-
-                <circle
-                  cx="1"
-                  cy="1"
-                  r="1"
-                  fill="#a4b9a0"
-                  opacity="0.15"
-                />
+                <circle cx="1" cy="1" r="1" fill="#a4b9a0" opacity="0.15" />
               </pattern>
-
-              <linearGradient
-                id={`${gridId}-path`}
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-                <stop offset="0%" stopColor="#b7e878" />
-                <stop offset="100%" stopColor="#f3cf7a" />
-              </linearGradient>
 
               <filter
                 id={`${gridId}-glow`}
@@ -276,34 +257,29 @@ function GraphCanvas({
             <rect width="620" height="380" fill={`url(#${gridId})`} />
 
             {/* Edges */}
-
             {edges.map((edge, index) => {
               const from = getNode(edge.from);
               const to = getNode(edge.to);
 
               if (!from || !to) return null;
               const highlighted = isPathEdge(edge);
-              const labelPosition = getEdgeLabelPosition(edge);
+              const midX = (from.x + to.x) / 2;
+              const midY = (from.y + to.y) / 2;
+              const label = String(edge.weight);
+              const labelWidth = 14 + label.length * 7;
 
               return (
-
                 <g key={`${edge.from}-${edge.to}-${index}`}>
                   <line
-                    className="graph-edge"
+                    className={`graph-edge ${highlighted ? "graph-path-edge" : ""}`}
                     x1={from.x}
                     y1={from.y}
                     x2={to.x}
                     y2={to.y}
-                    fill="none"
-                    stroke={
-                      highlighted
-                        ? `url(#${gridId}-path)`
-                        : "#66816a"
-                    }
+                    stroke={highlighted ? COLORS.pathEdge : COLORS.edge}
                     strokeWidth={highlighted ? 3.5 : 1.7}
-                    strokeOpacity={highlighted ? 1 : 0.65}
-                    strokeDasharray={highlighted ? "7 5" : "0"}
-                    strokeDashoffset="24"
+                    strokeOpacity={highlighted ? 1 : 0.6}
+                    strokeDasharray={highlighted ? "8 6" : undefined}
                     strokeLinecap="round"
                     filter={
                       highlighted ? `url(#${gridId}-glow)` : undefined
@@ -311,26 +287,26 @@ function GraphCanvas({
                   />
 
                   {showWeights && (
-                    <g>
+                    <g pointerEvents="none">
                       <rect
-                        x={labelPosition.x - 15}
-                        y={labelPosition.y - 10}
-                        width="30"
+                        x={midX - labelWidth / 2}
+                        y={midY - 10}
+                        width={labelWidth}
                         height="20"
-                        rx="6"
-                        fill="#203626"
-                        stroke={highlighted ? "#b7e878" : "#596f55"}
-                        strokeWidth="0.8"
+                        rx="10"
+                        fill={highlighted ? "#2f4a31" : "#203626"}
+                        stroke={highlighted ? COLORS.pathEdge : "#596f55"}
+                        strokeWidth="1"
                       />
                       <text
-                        x={labelPosition.x}
-                        y={labelPosition.y + 4}
+                        x={midX}
+                        y={midY + 4}
                         fill={highlighted ? "#e6f6c9" : "#d1dec8"}
                         textAnchor="middle"
                         fontSize="11"
                         fontWeight="600"
                       >
-                        {edge.weight}
+                        {label}
                       </text>
                     </g>
                   )}
@@ -339,39 +315,22 @@ function GraphCanvas({
             })}
 
             {/* Nodes */}
-
             {nodes.map((node) => {
               const isCurrent = currentNode === node.id;
               const isVisited = visitedNodes.includes(node.id);
               const isSelected = selectedNodes.includes(node.id);
               const isInPath = shortestPath.includes(node.id);
-              let fill = "#27402d";
-              let stroke = "#7f967b";
+              let palette = COLORS.idle;
 
-              if (isVisited) {
-                fill = "#315333";
-                stroke = "#b7e878";
-              }
-
-              if (isInPath) {
-                fill = "#45672f";
-                stroke = "#b7e878";
-              }
-
-              if (isCurrent) {
-                fill = "#526f34";
-                stroke = "#e6f6c9";
-              }
-
-              if (isSelected) {
-                fill = "#66552b";
-                stroke = "#f3cf7a";
-              }
+              if (isVisited) palette = COLORS.visited;
+              if (isInPath) palette = COLORS.path;
+              if (isCurrent) palette = COLORS.current;
+              if (isSelected) palette = COLORS.selected;
 
               return (
                 <g
                   key={node.id}
-                  className={`graph-node ${isCurrent ? "graph-current-node" : ""}`}
+                  className={`graph-node group ${isCurrent ? "graph-current-node" : ""}`}
                   role="button"
                   tabIndex={0}
                   aria-label={`Select node ${node.id}`}
@@ -383,7 +342,6 @@ function GraphCanvas({
                       onNodeClick(node.id);
                     }
                   }}
-
                   style={{
                     cursor: "pointer",
                     transformBox: "fill-box",
@@ -391,24 +349,47 @@ function GraphCanvas({
                     outline: "none",
                   }}
                 >
+                  {/* Keyboard focus ring */}
+                  <circle
+                    cx={node.x}
+                    cy={node.y}
+                    r={nodeRadius + 6}
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                    className="opacity-0 group-focus-visible:opacity-100"
+                  />
+
+                  {/* Current node halo */}
                   {isCurrent && (
                     <circle
                       cx={node.x}
                       cy={node.y}
                       r={nodeRadius + 8}
                       fill="none"
-                      stroke="#b7e878"
+                      stroke={COLORS.pathEdge}
                       strokeWidth="1.5"
-                      opacity="0.4"
+                      opacity="0.45"
                     />
                   )}
+
+                  {/* Hover halo shows what a click will do in the current mode */}
+                  <circle
+                    cx={node.x}
+                    cy={node.y}
+                    r={nodeRadius + 4}
+                    fill="none"
+                    stroke={mode === "delete" ? "#fda4af" : "#d9f99d"}
+                    strokeWidth="1.5"
+                    className="opacity-0 transition-opacity group-hover:opacity-60"
+                  />
 
                   <circle
                     cx={node.x}
                     cy={node.y}
                     r={nodeRadius}
-                    fill={fill}
-                    stroke={stroke}
+                    fill={palette.fill}
+                    stroke={palette.stroke}
                     strokeWidth={isSelected || isCurrent ? 3 : 2}
                   />
 
@@ -442,56 +423,51 @@ function GraphCanvas({
         </div>
       </div>
 
-      {/* Footer statistics */}
-      <div className="grid gap-3 border-t border-white/[0.10] px-5 py-4 sm:grid-cols-3 sm:px-6">
-        <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#b7d66e]/10 text-[#d9f99d]">
-            <Waypoints size={17} />
-          </div>
+      {/* Footer: legend (matches the node colors) and size */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-4 text-xs text-white/65 sm:px-6">
+        <ul className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <LegendDot label="Current node" palette={COLORS.current} />
+          <LegendDot label="Visited" palette={COLORS.visited} />
+          <LegendDot label="Selected" palette={COLORS.selected} />
+          <li className="inline-flex items-center gap-2">
+            <span
+              className="h-0.5 w-5 rounded"
+              style={{ backgroundColor: COLORS.pathEdge }}
+            />
+            Shortest path
+          </li>
+        </ul>
 
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/45">
-              Nodes
-            </p>
-
-            <p className="mt-1 text-sm font-semibold text-white">
-              {nodes.length}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-[#c0d9ae]">
-            <GitBranch size={17} />
-          </div>
-
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/45">
-              Edges
-            </p>
-
-            <p className="mt-1 text-sm font-semibold text-white">
-              {edges.length}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f6d08a]/10 text-[#f6d08a]">
-            <MousePointer2 size={17} />
-          </div>
-
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-white/45">
-              Active mode
-            </p>
-            <p className="mt-1 truncate text-sm font-semibold capitalize text-white">
-              {mode === "add-edge" ? "Add edge" : mode}
-            </p>
-          </div>
-        </div>
+        <p className="flex items-center gap-4 font-mono tabular-nums text-white/75">
+          <span className="inline-flex items-center gap-1.5">
+            <Waypoints size={14} className="text-[#d9f99d]" aria-hidden="true" />
+            {nodes.length} {nodes.length === 1 ? "node" : "nodes"}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <GitBranch size={14} className="text-[#c0d9ae]" aria-hidden="true" />
+            {edges.length} {edges.length === 1 ? "edge" : "edges"}
+          </span>
+        </p>
       </div>
     </section>
+  );
+}
+
+function LegendDot({
+  label,
+  palette,
+}: {
+  label: string;
+  palette: { fill: string; stroke: string };
+}) {
+  return (
+    <li className="inline-flex items-center gap-2">
+      <span
+        className="h-3 w-3 rounded-full border-2"
+        style={{ backgroundColor: palette.fill, borderColor: palette.stroke }}
+      />
+      {label}
+    </li>
   );
 }
 

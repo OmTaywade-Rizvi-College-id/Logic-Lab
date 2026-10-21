@@ -1,75 +1,40 @@
-
-
 import { useMemo, useState } from "react";
-
 import {
-
   Play,
-
   Pause,
-
   RotateCcw,
-
   SkipBack,
-
   SkipForward,
-
 } from "lucide-react";
 
-
-
 import type { SortingAlgorithmId, SortingStep } from "../types";
-
 import { useAlgorithmController } from "../hooks/useAlgorithmController";
-
 import SortingInputs from "./SortingInputs";
-
 import SortingCanvas from "./sorting/SortingCanvas";
-
 import SortingSourcePanel from "./source/SortingSourcePanel";
 
-
-
 interface SortingWorkspaceProps {
-
   algorithm: SortingAlgorithmId;
-
 }
 
-
-
 const ALGORITHM_DETAILS: Record<
-
   SortingAlgorithmId,
-
   { title: string; description: string; complexity: string; space: string }
-
 > = {
-
   selectionSort: {
-
     title: "Selection Sort",
-
-    description: "Find the next minimum or maximum and place it in its final position.",
-
+    description:
+      "Find the next minimum or maximum and place it in its final position.",
     complexity: "O(n²)",
-
     space: "O(1)",
-
   },
-
   insertionSort: {
-
     title: "Insertion Sort",
-
-    description: "Insert each value into its correct position in the sorted section.",
-
+    description:
+      "Insert each value into its correct position in the sorted section.",
     complexity: "O(n²)",
-
     space: "O(1)",
-
   },
-
   quickSort: {
     title: "Quick Sort",
     description: "Partition values around a pivot and sort each partition.",
@@ -77,6 +42,15 @@ const ALGORITHM_DETAILS: Record<
     space: "O(log n) average",
   },
 };
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9db783] focus-visible:ring-offset-2";
+const focusRingDark =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b7d66e]/70";
+
+const thumb =
+  "[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#203626] [&::-webkit-slider-thumb]:bg-[#e6f6c9] " +
+  "[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#203626] [&::-moz-range-thumb]:bg-[#e6f6c9]";
 
 export default function SortingWorkspace({
   algorithm,
@@ -92,7 +66,9 @@ export default function SortingWorkspace({
   const sortingResult = result && "sortedArray" in result ? result : null;
   const step = (
     controller.playback.currentStep &&
-    "array" in controller.playback.currentStep ? controller.playback.currentStep: null
+    "array" in controller.playback.currentStep
+      ? controller.playback.currentStep
+      : null
   ) as SortingStep | null;
 
   const values = step?.array ?? inputValues;
@@ -122,52 +98,44 @@ export default function SortingWorkspace({
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1500px] space-y-3">
-      {/* Algorithm information and primary controls */}
+    <div className="mx-auto w-full max-w-[1500px] space-y-4">
+      {/* Algorithm information, primary controls and input */}
+      <section className="overflow-hidden rounded-2xl border border-[#e2e7dc] bg-white text-[#19271e]">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4 px-5 py-4 sm:px-6 sm:py-5">
+          <div className="min-w-0 flex-1 basis-72">
+            <h2 className="text-xl font-semibold tracking-tight text-[#203626] sm:text-2xl">
+              {details.title}
+            </h2>
 
-      <section className="overflow-hidden rounded-[26px] border border-[#e2e7dc] bg-white text-[#19271e] shadow-[0_12px_38px_rgba(29,49,29,0.055)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e6ebe1] px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold text-[#203626]">
-                {details.title}
-              </h2>
-
-              <span className="rounded-full border border-[#d6e4c6] bg-[#edf4e3] px-2 py-0.5 text-[10px] font-bold text-[#55783b]">
-                SORTING
-              </span>
-            </div>
-
-            <p className="mt-1 text-xs leading-5 text-[#778176]">
+            <p className="mt-1 max-w-prose text-sm leading-6 text-[#5f6c5e]">
               {details.description}
             </p>
 
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-              <span className="text-[#899383]">
-                Average time{" "}
-                <strong className="text-[#4e604d]">
+            <dl className="mt-3 flex flex-wrap gap-2 text-xs">
+              <div className="inline-flex items-baseline gap-1.5 rounded-full bg-[#f1f5ea] px-3 py-1">
+                <dt className="text-[#6b7a68]">Time</dt>
+                <dd className="font-mono font-semibold text-[#2f4a31]">
                   {details.complexity}
-                </strong>
-              </span>
-              <span className="text-[#899383]">
-                Space{" "}
-                <strong className="text-[#4e604d]">
+                </dd>
+              </div>
+              <div className="inline-flex items-baseline gap-1.5 rounded-full bg-[#f1f5ea] px-3 py-1">
+                <dt className="text-[#6b7a68]">Space</dt>
+                <dd className="font-mono font-semibold text-[#2f4a31]">
                   {details.space}
-                </strong>
-              </span>
-            </div>
+                </dd>
+              </div>
+            </dl>
           </div>
 
           {/* Keep these controls together at every screen size */}
-
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="submit"
               form="sorting-input-form"
               disabled={controller.busy}
-              className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-[#203626] px-3 py-2 text-xs font-bold text-[#e6f6c9] transition hover:bg-[#2e4a33] disabled:opacity-40"
+              className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#203626] px-4 py-2.5 text-sm font-semibold text-[#e6f6c9] transition hover:bg-[#2e4a33] disabled:opacity-40 ${focusRing}`}
             >
-              <Play size={14} fill="currentColor" />
+              <Play size={15} fill="currentColor" />
               {controller.busy ? "Running…" : "Run"}
             </button>
 
@@ -184,12 +152,12 @@ export default function SortingWorkspace({
                   controller.playback.play();
                 }
               }}
-              className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-[#dfe5d8] bg-white px-3 py-2 text-xs font-semibold text-[#4e604d] transition hover:bg-[#f5f8ef] disabled:opacity-40"
+              className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#d5ddcb] bg-white px-4 py-2.5 text-sm font-semibold text-[#344936] transition hover:bg-[#f5f8ef] disabled:opacity-40 ${focusRing}`}
             >
               {isPlaying ? (
-                <Pause size={14} />
+                <Pause size={15} />
               ) : (
-                <Play size={14} fill="currentColor" />
+                <Play size={15} fill="currentColor" />
               )}
               {isPlaying ? "Pause" : "Play"}
             </button>
@@ -200,14 +168,14 @@ export default function SortingWorkspace({
               aria-label="Reset playback"
               disabled={!sortingResult || controller.busy}
               onClick={resetExecution}
-              className="inline-flex items-center justify-center rounded-xl border border-[#dfe5d8] bg-white px-2.5 py-2 text-[#4e604d] transition hover:bg-[#f5f8ef] disabled:opacity-40"
+              className={`inline-flex items-center justify-center rounded-xl border border-[#d5ddcb] bg-white p-2.5 text-[#344936] transition hover:bg-[#f5f8ef] disabled:opacity-40 ${focusRing}`}
             >
-              <RotateCcw size={14} />
+              <RotateCcw size={16} />
             </button>
           </div>
         </div>
 
-        <div className="p-3 sm:p-4">
+        <div className="border-t border-[#e6ebe1] bg-[#f7f9f3] p-4 sm:px-6">
           <SortingInputs
             onRun={run}
             busy={controller.busy}
@@ -220,41 +188,41 @@ export default function SortingWorkspace({
       {controller.error && (
         <div
           role="alert"
-          className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300"
+          className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
         >
           {controller.error}
         </div>
       )}
 
-      {/* Visualization updates in place as playback advances */}
+      {/* Visualization stage: updates in place as playback advances */}
+      <section
+        aria-label="Sorting visualization"
+        className="overflow-hidden rounded-2xl border border-[#2b4631] bg-[#203626] text-[#e6f6c9]"
+      >
+        {/* What is happening right now */}
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 px-5 pb-3 pt-4 sm:px-6">
+          <p
+            className="min-h-[3rem] min-w-0 flex-1 basis-72 text-base leading-6 text-white/90"
+            aria-live="polite"
+          >
+            {step?.explanation ??
+              "Enter your array and select Run to generate the execution steps."}
+          </p>
 
-      <section className="overflow-hidden rounded-[26px] border border-[#e2e7dc] bg-white text-[#19271e] shadow-[0_12px_38px_rgba(29,49,29,0.055)]">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e6ebe1] px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-[#203626]">
-              Live sorting visualization
-            </h3>
-
-            <p className="mt-1 text-xs leading-5 text-[#778176]"
-              aria-live="polite"
-            >
-              {step?.explanation ??
-                "Enter your array and select Run to generate the execution steps."}
-            </p>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2 text-[11px]">
-            <span className="rounded-md border border-[#dfe5d8] bg-[#f7f9f3] px-2 py-1 text-[#4e604d]">
-              {values.length} values
-            </span>
-            <span className="rounded-md border border-[#d6e4c6] bg-[#edf4e3] px-2 py-1 text-[#55783b]">
+          <p className="shrink-0 pt-0.5 font-mono text-xs tabular-nums text-white/55">
+            {values.length} values
+            <span className="ml-3 text-[#b7d66e]">
               {sortingResult ? `${totalSteps} steps` : "Ready"}
             </span>
-          </div>
+          </p>
         </div>
 
-        <div className="space-y-3 p-3 sm:p-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-[#778176]">
+        <div className="px-3 sm:px-5">
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#14251a] p-2 sm:p-3">
+            <SortingCanvas values={values} step={step} />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-1 py-3 text-xs text-white/65">
             <Legend color="bg-[#8daf5a]" label="Sorted" />
             <Legend color="bg-amber-400" label="Comparing" />
             <Legend color="bg-rose-500" label="Swap" />
@@ -262,105 +230,56 @@ export default function SortingWorkspace({
             <Legend color="bg-orange-400" label="Minimum" />
             <Legend color="bg-slate-400" label="Unprocessed" />
           </div>
+        </div>
 
-          <div className="overflow-hidden rounded-xl border border-[#e6ebe1] bg-[#203626] p-2 sm:p-3">
-            <SortingCanvas values={values} step={step} />
-          </div>
+        {/* Live counters */}
+        <dl className="grid grid-cols-2 divide-x divide-white/10 border-t border-white/10 sm:grid-cols-4">
+          <Readout
+            label="Comparisons"
+            value={step?.comparisons ?? 0}
+            accent="text-amber-300"
+          />
+          <Readout
+            label="Swaps"
+            value={step?.swaps ?? 0}
+            accent="text-rose-300"
+          />
+          <Readout
+            label="Writes"
+            value={step?.writes ?? 0}
+            accent="text-sky-300"
+          />
+          <Readout
+            label="Direction"
+            value={ascending ? "Ascending" : "Descending"}
+            accent="text-[#d9f99d]"
+            text
+          />
+        </dl>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {/* Transport: step through, scrub, change speed. Play/Pause lives in the header. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-3 border-t border-white/10 bg-black/15 px-4 py-3 sm:px-6">
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-[#e6f6c9] transition hover:bg-white/10 disabled:opacity-35 ${focusRingDark}`}
+            disabled={!sortingResult || controller.playback.isFirst}
+            onClick={controller.playback.previous}
+          >
+            <SkipBack size={13} />
+            Previous
+          </button>
 
-            <Stat
-              label="Comparisons"
-              value={step?.comparisons ?? 0}
-              accent="text-amber-300"
-            />
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-[#e6f6c9] transition hover:bg-white/10 disabled:opacity-35 ${focusRingDark}`}
+            disabled={!sortingResult || controller.playback.isLast}
+            onClick={controller.playback.next}
+          >
+            Next
+            <SkipForward size={13} />
+          </button>
 
-            <Stat
-              label="Swaps"
-              value={step?.swaps ?? 0}
-              accent="text-rose-300"
-            />
-
-            <Stat
-              label="Writes"
-              value={step?.writes ?? 0}
-              accent="text-sky-300"
-            />
-
-            <Stat
-              label="Direction"
-              value={ascending ? "Ascending" : "Descending"}
-              accent="text-[#55783b]"
-            />
-          </div>
-
-          <div>
-            <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
-              <span className="text-[#778176]">Execution progress</span>
-              <span className="font-mono text-[#55783b]">{progress}%</span>
-            </div>
-
-            <div
-              className="h-1.5 overflow-hidden rounded-full bg-[#e4e9df]"
-              role="progressbar"
-              aria-valuenow={progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Sorting execution progress"
-            >
-              <div className="h-full rounded-full bg-gradient-to-r from-[#638640] to-[#b2d66f] transition-[width] duration-200"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Step navigation; Play/Pause remains in the header */}
-          <div className="flex flex-wrap items-center gap-2 border-t border-[#e6ebe1] pt-3">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfe5d8] bg-white px-3 py-2 text-xs font-semibold text-[#4e604d] transition hover:bg-[#f5f8ef] disabled:opacity-40"
-              disabled={!sortingResult || controller.playback.isFirst}
-              onClick={controller.playback.previous}
-            >
-              <SkipBack size={13} />
-              Previous
-            </button>
-
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfe5d8] bg-white px-3 py-2 text-xs font-semibold text-[#4e604d] transition hover:bg-[#f5f8ef] disabled:opacity-40"
-              disabled={!sortingResult || controller.playback.isLast}
-              onClick={controller.playback.next}
-            >
-              Next
-              <SkipForward size={13} />
-            </button>
-
-            <label className="ml-auto flex items-center gap-2 text-xs text-[#778176]">
-              Speed
-              <select
-                value={controller.playback.speed}
-                onChange={(event) =>
-                  controller.playback.setSpeed(Number(event.target.value))
-                }
-                className="w-[76px] rounded-lg border border-[#dfe5d8] bg-white px-2 py-2 text-xs text-[#344936] outline-none focus:border-[#9db783]"
-              >
-                <option value={0.5}>0.5×</option>
-                <option value={1}>1×</option>
-                <option value={2}>2×</option>
-                <option value={4}>4×</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="rounded-lg border border-[#e6ebe1] bg-[#f7f9f3] px-3 py-2">
-            <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="text-[#778176]">Step position</span>
-              <span className="font-mono text-[#4e604d]">
-                {sortingResult ? stepIndex + 1 : 0} / {totalSteps}
-              </span>
-            </div>
-
+          <div className="order-last flex w-full min-w-0 items-center gap-3 sm:order-none sm:w-auto sm:flex-1">
             <input
               type="range"
               min={0}
@@ -370,32 +289,54 @@ export default function SortingWorkspace({
               onChange={(event) =>
                 controller.playback.seek(Number(event.target.value))
               }
-              className="w-full cursor-pointer accent-[#638640]"
+              style={{
+                background: `linear-gradient(to right, #b7d66e ${progress}%, rgba(255,255,255,0.16) ${progress}%)`,
+              }}
+              className={`h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-40 ${thumb} ${focusRingDark}`}
               aria-label="Choose sorting step"
+              aria-valuetext={`Step ${sortingResult ? stepIndex + 1 : 0} of ${totalSteps}, ${progress}% complete`}
             />
 
+            <span className="shrink-0 text-right font-mono text-xs tabular-nums text-white/70">
+              {sortingResult ? stepIndex + 1 : 0} / {totalSteps}
+            </span>
           </div>
 
-          {sortingResult && (
-            <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-[#dce8cd] bg-[#f3f7ec] px-3 py-2.5">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#899383]">
-                  Final sorted array
-                </p>
-
-                <p className="mt-1 break-words font-mono text-sm text-[#55783b]">
-                  [{sortingResult.sortedArray.join(", ")}]
-                </p>
-              </div>
-              {isComplete && (
-                <span className="rounded-md bg-[#edf4e3] px-2 py-1 text-[11px] font-medium text-[#55783b]">
-                  Complete
-                </span>
-              )}
-            </div>
-          )}
+          <label className="ml-auto flex items-center gap-2 text-xs text-white/65 sm:ml-0">
+            Speed
+            <select
+              value={controller.playback.speed}
+              onChange={(event) =>
+                controller.playback.setSpeed(Number(event.target.value))
+              }
+              className={`rounded-lg border border-white/15 bg-[#14251a] px-2 py-1.5 text-xs text-[#e6f6c9] ${focusRingDark}`}
+            >
+              <option value={0.5}>0.5×</option>
+              <option value={1}>1×</option>
+              <option value={2}>2×</option>
+              <option value={4}>4×</option>
+            </select>
+          </label>
         </div>
+
+        {sortingResult && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-5 py-3 sm:px-6">
+            <div className="min-w-0">
+              <p className="text-xs text-white/55">Final sorted array</p>
+              <p className="mt-0.5 break-words font-mono text-sm text-[#d9f99d]">
+                [{sortingResult.sortedArray.join(", ")}]
+              </p>
+            </div>
+
+            {isComplete && (
+              <span className="rounded-full bg-[#b7d66e]/15 px-3 py-1 text-xs font-semibold text-[#d9f99d]">
+                Complete
+              </span>
+            )}
+          </div>
+        )}
       </section>
+
       <SortingSourcePanel algorithm={algorithm} step={step} />
     </div>
   );
@@ -410,21 +351,27 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-function Stat({
+function Readout({
   label,
   value,
   accent,
+  text = false,
 }: {
   label: string;
   value: string | number;
   accent: string;
+  text?: boolean;
 }) {
   return (
-    <div className="min-w-0 rounded-lg border border-[#e6ebe1] bg-[#f7f9f3] px-3 py-2">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-[#899383]">
-        {label}
-      </p>
-      <p className={`mt-1 truncate text-sm font-bold ${accent}`}>{value}</p>
+    <div className="min-w-0 px-5 py-3 sm:px-6">
+      <dt className="text-xs text-white/55">{label}</dt>
+      <dd
+        className={`mt-0.5 truncate font-semibold tabular-nums ${accent} ${
+          text ? "text-base leading-8" : "font-mono text-2xl"
+        }`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
