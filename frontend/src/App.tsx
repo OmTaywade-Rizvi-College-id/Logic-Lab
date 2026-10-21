@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
@@ -9,7 +13,10 @@ import Applications from "./pages/Applications";
 import CodeComplexity from "./pages/CodeComplexity";
 import Practice from "./pages/Practice";
 import About from "./pages/About";
+<<<<<<< HEAD
 import Login from "./pages/Login";
+=======
+>>>>>>> origin/main
 
 function NotFound() {
   return (
@@ -35,6 +42,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+<<<<<<< HEAD
         <Route path="/login" element={<Login />} />
 
         <Route element={<MainLayout />}>
@@ -43,6 +51,23 @@ function App() {
           <Route path="/route-lab" element={<RouteLab />} />
           <Route path="/applications" element={<Applications />} />
           <Route path="/code-complexity" element={<CodeComplexity />} />
+=======
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route
+            path="/algorithms"
+            element={<ExploreAlgorithms />}
+          />
+          <Route path="/route-lab" element={<RouteLab />} />
+          <Route
+            path="/applications"
+            element={<Applications />}
+          />
+          <Route
+            path="/code-complexity"
+            element={<CodeComplexity />}
+          />
+>>>>>>> origin/main
           <Route path="/practice" element={<Practice />} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
@@ -52,4 +77,8 @@ function App() {
   );
 }
 
+<<<<<<< HEAD
 export default App;
+=======
+export default App;
+>>>>>>> origin/main

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
+<<<<<<< HEAD
 import { useNavigate } from "react-router-dom";
+=======
+>>>>>>> origin/main
 import { Search, Menu, X, Lightbulb, ArrowUpRight } from "lucide-react";
 import gsap from "gsap";
 
@@ -14,9 +17,13 @@ const navItems = [
   { label: "About", path: "/about" },
 ];
 
+<<<<<<< HEAD
 
 export default function Navbar() {
   const navigate = useNavigate();
+=======
+export default function Navbar() {
+>>>>>>> origin/main
   const [menuOpen, setMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const mobileNavRef = useRef<HTMLElement>(null);
@@ -57,9 +64,16 @@ export default function Navbar() {
   }
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+<<<<<<< HEAD
     `relative rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a4c67a]/70 ${isActive
       ? "bg-[#eaf1df] text-[#314d2c]"
       : "text-[#687565] hover:bg-[#f1f5eb] hover:text-[#203626]"
+=======
+    `relative rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a4c67a]/70 ${
+      isActive
+        ? "bg-[#eaf1df] text-[#314d2c]"
+        : "text-[#687565] hover:bg-[#f1f5eb] hover:text-[#203626]"
+>>>>>>> origin/main
     }`;
 
   return (
@@ -109,6 +123,7 @@ export default function Navbar() {
             <Search size={17} />
           </NavLink>
 
+<<<<<<< HEAD
 
           <div className="flex items-center gap-3">
             <button
@@ -128,6 +143,15 @@ export default function Navbar() {
             </button>
           </div>
 
+=======
+          <NavLink
+            to="/practice"
+            onClick={closeMenu}
+            className="hidden items-center gap-2 rounded-xl bg-[#203626] px-3.5 py-2.5 text-xs font-bold text-[#e6f6c9] transition hover:bg-[#2e4a33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a4c67a]/70 sm:inline-flex"
+          >
+            Start practicing <ArrowUpRight size={15} />
+          </NavLink>
+>>>>>>> origin/main
 
           <button
             type="button"
@@ -156,9 +180,16 @@ export default function Navbar() {
               end={item.path === "/"}
               onClick={closeMenu}
               className={({ isActive }) =>
+<<<<<<< HEAD
                 `mobile-nav-link rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${isActive
                   ? "border-[#d6e4c6] bg-[#eaf1df] text-[#314d2c]"
                   : "border-transparent text-[#687565] hover:bg-white hover:text-[#203626]"
+=======
+                `mobile-nav-link rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
+                  isActive
+                    ? "border-[#d6e4c6] bg-[#eaf1df] text-[#314d2c]"
+                    : "border-transparent text-[#687565] hover:bg-white hover:text-[#203626]"
+>>>>>>> origin/main
                 }`
               }
             >
