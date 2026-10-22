@@ -1,5 +1,10 @@
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+} from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
 
@@ -27,33 +32,35 @@ function NotFound() {
           continue exploring algorithms.
         </p>
 
-        <a href="/" className="btn-primary">
+        <Link to="/" className="btn-primary">
           Back to Home
-        </a>
+        </Link>
       </div>
     </main>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Login uses its own layout */}
         <Route path="/login" element={<Login />} />
 
+        {/* Pages that share the main layout */}
         <Route element={<MainLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/algorithms" element={<ExploreAlgorithms />} />
-          <Route path="/route-lab" element={<RouteLab />} />
-          <Route path="/applications" element={<Applications />} />
-          <Route path="/code-complexity" element={<CodeComplexity />} />
-          <Route path="/practice" element={<Practice />} />
-          <Route path="/about" element={<About />} />
-          <Route path="*" element={<NotFound />} />
+          <Route index element={<Home />} />
+          <Route path="algorithms" element={<ExploreAlgorithms />} />
+          <Route path="route-lab" element={<RouteLab />} />
+          <Route path="applications" element={<Applications />} />
+          <Route path="code-complexity" element={<CodeComplexity />} />
+          <Route path="practice" element={<Practice />} />
+          <Route path="about" element={<About />} />
         </Route>
+
+        {/* Unknown URLs */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;
