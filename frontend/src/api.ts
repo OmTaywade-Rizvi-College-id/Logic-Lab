@@ -27,20 +27,23 @@ export function runAlgorithm(
   return runGraphAlgorithm(algorithm, request);
 }
 
+
 export function runSortingAlgorithm(
   algorithm: SortingAlgorithmId,
   input: number[],
   ascending = true,
 ): SortingResult {
+  const values = [...input];
+
   switch (algorithm) {
     case "selectionSort":
-      return runSelectionSort(input, ascending);
+      return runSelectionSort(values, ascending);
 
     case "insertionSort":
-      return runInsertionSort(input, ascending);
+      return runInsertionSort(values, ascending);
 
     case "quickSort":
-      return runQuickSort(input, ascending);
+      return runQuickSort(values, ascending);
 
     default: {
       const exhaustive: never = algorithm;
@@ -48,6 +51,7 @@ export function runSortingAlgorithm(
     }
   }
 }
+
 
 export function isSortingAlgorithm(
   algorithm: AlgorithmId,
