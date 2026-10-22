@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -5,15 +6,19 @@ import App from "./App";
 import "./index.css";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const rootElement = document.getElementById("root");
 
-console.log("Google Client ID loaded:", clientId);
-console.log("Current origin:", window.location.origin);
-
-if (!clientId) {
-  throw new Error("VITE_GOOGLE_CLIENT_ID is missing");
+if (!rootElement) {
+  throw new Error('Root element "#root" was not found in index.html.');
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+if (!clientId) {
+  throw new Error(
+    "VITE_GOOGLE_CLIENT_ID is missing. Configure it in your frontend environment."
+  );
+}
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={clientId}>
       <App />
